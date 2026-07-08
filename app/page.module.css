@@ -1,0 +1,562 @@
+.shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px 20px;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.brandBlock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.brandName,
+.brandSub,
+.eyebrow,
+.kicker,
+.rankNote,
+.passageMeta,
+.activityList,
+.groupItem span {
+  margin: 0;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.brandSub {
+  margin-top: 3px;
+  color: #aab6c7;
+  font-size: 12px;
+}
+
+.navList {
+  display: grid;
+  gap: 8px;
+}
+
+.navItem,
+.navItemActive,
+.loginButton,
+.primaryButton,
+.iconButton,
+.dateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.navItem,
+.navItemActive {
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.navItemActive {
+  background: #22304a;
+  color: #ffffff;
+}
+
+.navItem:hover {
+  background: #1b2538;
+  color: #ffffff;
+}
+
+.loginButton {
+  justify-content: center;
+  min-height: 42px;
+  margin-top: auto;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.workspace {
+  padding: 28px;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.eyebrow,
+.kicker {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.topbar h1,
+.panelHead h2,
+.sectionTitle h2,
+.sectionTitleCompact h2,
+.rankPanel h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.topbar h1 {
+  margin-top: 5px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.dateBadge {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: #344054;
+  font-weight: 800;
+}
+
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.primaryPanel,
+.visualPanel,
+.groupPanel,
+.rankPanel,
+.activityPanel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.primaryPanel {
+  padding: 22px;
+}
+
+.panelHead,
+.sectionTitle,
+.sectionTitleCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelHead h2 {
+  margin-top: 5px;
+  font-size: 26px;
+  line-height: 1.25;
+}
+
+.primaryButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.metricRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.metricBox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 9px;
+  align-items: center;
+  min-height: 78px;
+  padding: 14px;
+  border: 1px solid #e5eaf2;
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+.metricBox strong {
+  font-size: 20px;
+}
+
+.metricBox span {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.visualPanel {
+  position: relative;
+  min-height: 178px;
+  overflow: hidden;
+  background: #182235;
+}
+
+.paperStack {
+  position: absolute;
+  left: 26px;
+  top: 27px;
+  display: grid;
+  gap: 12px;
+  width: 178px;
+}
+
+.paperStack span {
+  display: block;
+  height: 24px;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.paperStack span:nth-child(2) {
+  width: 82%;
+  background: #d8e3f7;
+}
+
+.paperStack span:nth-child(3) {
+  width: 62%;
+  background: #88c8bb;
+}
+
+.answerRail {
+  position: absolute;
+  right: 26px;
+  bottom: 24px;
+  display: flex;
+  gap: 8px;
+}
+
+.answerRail i {
+  display: block;
+  width: 19px;
+  height: 62px;
+  border-radius: 6px;
+  background: #f0b96b;
+}
+
+.answerRail i:nth-child(2) {
+  height: 82px;
+  background: #6aa8ff;
+}
+
+.answerRail i:nth-child(3) {
+  height: 48px;
+  background: #f17462;
+}
+
+.answerRail i:nth-child(4) {
+  height: 96px;
+  background: #73c6a7;
+}
+
+.answerRail i:nth-child(5) {
+  height: 70px;
+  background: #c6d2e1;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.queueArea {
+  min-width: 0;
+}
+
+.sectionTitle {
+  margin-bottom: 12px;
+}
+
+.sectionTitle h2,
+.sectionTitleCompact h2 {
+  font-size: 18px;
+}
+
+.iconButton {
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #475467;
+}
+
+.passageList,
+.groupList {
+  display: grid;
+  gap: 10px;
+}
+
+.passageCard {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.passageIndex {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.blue {
+  background: var(--blue);
+}
+
+.green {
+  background: var(--green);
+}
+
+.coral {
+  background: var(--coral);
+}
+
+.passageBody {
+  min-width: 0;
+}
+
+.passageMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.passageBody h3 {
+  margin: 7px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.statusPill {
+  min-width: 46px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.sideRail {
+  display: grid;
+  gap: 14px;
+}
+
+.groupPanel,
+.rankPanel,
+.activityPanel {
+  padding: 18px;
+}
+
+.sectionTitleCompact {
+  margin-bottom: 14px;
+}
+
+.groupItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 12px;
+  border: 1px solid #e5eaf2;
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+.groupItem p {
+  margin: 0 0 4px;
+  font-weight: 900;
+}
+
+.groupItem span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.groupItem strong {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+}
+
+.rankPanel {
+  background: #ffffff;
+}
+
+.rankIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: #fff3d6;
+  color: var(--amber);
+}
+
+.rankPanel h2 {
+  margin-top: 4px;
+  font-size: 26px;
+}
+
+.progressTrack {
+  height: 10px;
+  margin: 16px 0 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ebf2;
+}
+
+.progressTrack span {
+  display: block;
+  width: 82%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--blue));
+}
+
+.rankNote {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.activityList {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.activityList li {
+  padding-left: 12px;
+  border-left: 3px solid #d9e0ea;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+@media (max-width: 1080px) {
+  .shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .overview,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .visualPanel {
+    min-height: 150px;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    padding: 16px;
+  }
+
+  .navList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace {
+    padding: 18px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar h1 {
+    font-size: 25px;
+  }
+
+  .panelHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .metricRow {
+    grid-template-columns: 1fr;
+  }
+
+  .passageCard {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .statusPill {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
