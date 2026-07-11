@@ -1103,6 +1103,7 @@ function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onRelo
               return (
                 <article className={styles.orbitDay} key={day.date}>
                   <div className={styles.planetStage}>
+                    {day.weekendMakeUp && <small className={styles.makeUpBadge}>주말 보충</small>}
                     <span
                       className={day.status === "EMPTY" ? styles.planetEmpty : styles.planetLit}
                       style={{ opacity: Math.max(0.35, day.brightness / 100) }}

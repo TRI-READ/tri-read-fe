@@ -2220,7 +2220,8 @@
 }
 .orbitGridWeek { grid-template-columns: repeat(5, 1fr); }
 .orbitDay { min-width: 0; padding: 16px; border: 1px solid #2c3b43; background: #141f27; }
-.planetStage { display: grid; place-items: center; height: 116px; }
+.planetStage { position: relative; display: grid; place-items: center; height: 116px; }
+.makeUpBadge { position: absolute; top: 2px; right: 2px; padding: 3px 6px; color: #9ce5d4; border: 1px solid #3b756a; background: #18312f; font-size: 9px; font-weight: 800; }
 .planetEmpty, .planetLit { position: relative; display: block; width: 62px; height: 62px; border-radius: 50%; }
 .planetEmpty { border: 1px dashed #4a5960; background: #1d2930; }
 .planetLit {
