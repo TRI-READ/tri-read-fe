@@ -1065,10 +1065,11 @@ function blankAdminQuiz() {
   };
 }
 
-function AdminQuizHub({ quizzes, loading, error, onCreate, onPublish }) {
+function AdminQuizHub({ quizzes, loading, error, onCreate, onUpdate, onDelete, onLoad, onPublish }) {
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   function updatePassage(field, value) {
     setDraft((current) => ({ ...current, passages: current.passages.map((p, i) => i === activePassage ? { ...p, [field]: value } : p) }));
@@ -1085,26 +1086,47 @@ function AdminQuizHub({ quizzes, loading, error, onCreate, onPublish }) {
   }
   async function submit(event) {
     event.preventDefault(); setSaving(true);
-    try { await onCreate(draft); setDraft(blankAdminQuiz()); setActivePassage(0); }
+    try { editingId ? await onUpdate(editingId, draft) : await onCreate(draft); resetEditor(); }
     finally { setSaving(false); }
+  }
+  function resetEditor() { setEditingId(null); setDraft(blankAdminQuiz()); setActivePassage(0); }
+  async function editQuiz(quizSetId) {
+    const detail = await onLoad(quizSetId);
+    setEditingId(quizSetId);
+    setDraft({ challengeDate: detail.quiz.challengeDate, passages: detail.passages.map((p) => ({
+      title: p.title || "", topic: p.topic || "", content: p.content,
+      questions: p.questions.map((q) => ({ content: q.content,
+        options: q.options.map((o) => o.content), correctOptionPosition: q.correctOptionPosition,
+        explanation: q.explanation, evidence: q.evidence || "" })),
+    })) });
+    setActivePassage(0);
+  }
+  async function deleteQuiz(quizSetId) {
+    if (!window.confirm("이 DRAFT를 삭제할까요?")) return;
+    await onDelete(quizSetId); if (editingId === quizSetId) resetEditor();
   }
 
   return (
     <section className={styles.adminHub}>
       <aside className={styles.adminRail}>
         <div className={styles.adminRailHeading}><span>QUIZ STUDIO</span><h2>퀴즈 관리</h2></div>
+        <button className={styles.adminNewButton} type="button" onClick={resetEditor}><Plus size={15} /> 새 퀴즈</button>
         <div className={styles.adminQuizList}>
           {quizzes.map((quiz) => (
             <article key={quiz.quizSetId}>
               <div><strong>{quiz.challengeDate}</strong><small>{quiz.status}</small></div>
-              {quiz.status !== "PUBLISHED" && <button type="button" onClick={() => onPublish(quiz.quizSetId)}>발행</button>}
+              {quiz.status !== "PUBLISHED" && <div className={styles.adminListActions}>
+                <button type="button" onClick={() => editQuiz(quiz.quizSetId)}>수정</button>
+                <button type="button" onClick={() => onPublish(quiz.quizSetId)}>발행</button>
+                <button type="button" onClick={() => deleteQuiz(quiz.quizSetId)} aria-label={`${quiz.challengeDate} 초안 삭제`} title="초안 삭제"><X size={14} /></button>
+              </div>}
             </article>
           ))}
         </div>
       </aside>
       <form className={styles.adminEditor} onSubmit={submit}>
         <header className={styles.adminEditorHeader}>
-          <div><span>MANUAL DRAFT</span><h1>새 퀴즈 만들기</h1><p>고3 난이도 · 3지문 · 9문제</p></div>
+          <div><span>MANUAL DRAFT</span><h1>{editingId ? `DRAFT #${editingId} 수정` : "새 퀴즈 만들기"}</h1><p>고3 난이도 · 3지문 · 9문제</p></div>
           <label>발행 예정일<input type="date" value={draft.challengeDate} onChange={(e) => setDraft({ ...draft, challengeDate: e.target.value })} required /></label>
         </header>
         {error && <div className={styles.adminError}>{error}</div>}
@@ -1129,7 +1151,7 @@ function AdminQuizHub({ quizzes, loading, error, onCreate, onPublish }) {
             </section>
           ))}
         </div>
-        <footer className={styles.adminFooter}><span>{loading ? "목록 갱신 중" : "모든 지문 입력 후 초안으로 저장됩니다."}</span><button className={styles.primaryButton} type="submit" disabled={saving}>{saving ? "저장 중..." : "DRAFT 저장"}</button></footer>
+        <footer className={styles.adminFooter}><span>{loading ? "목록 갱신 중" : editingId ? "발행 전 DRAFT만 수정할 수 있습니다." : "모든 지문 입력 후 초안으로 저장됩니다."}</span><button className={styles.primaryButton} type="submit" disabled={saving}>{saving ? "저장 중..." : editingId ? "수정 저장" : "DRAFT 저장"}</button></footer>
       </form>
     </section>
   );
@@ -1446,6 +1468,21 @@ export default function Home() {
     try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(); }
     catch (error) { setAdminError(getErrorMessage(error)); throw error; }
   }
+  async function loadAdminQuiz(quizSetId) {
+    setAdminError("");
+    try { return await apiFetch(`/api/admin/quizzes/${quizSetId}`); }
+    catch (error) { setAdminError(getErrorMessage(error)); throw error; }
+  }
+  async function updateAdminQuiz(quizSetId, draft) {
+    setAdminError("");
+    try { await apiFetch(`/api/admin/quizzes/${quizSetId}`, { method: "PUT", body: JSON.stringify(draft) }); await loadAdminQuizzes(); }
+    catch (error) { setAdminError(getErrorMessage(error)); throw error; }
+  }
+  async function deleteAdminQuiz(quizSetId) {
+    setAdminError("");
+    try { await apiFetch(`/api/admin/quizzes/${quizSetId}`, { method: "DELETE" }); await loadAdminQuizzes(); }
+    catch (error) { setAdminError(getErrorMessage(error)); }
+  }
   async function publishAdminQuiz(quizSetId) {
     setAdminError("");
     try { await apiFetch(`/api/admin/quizzes/${quizSetId}/publish`, { method: "POST" }); await loadAdminQuizzes(); }
@@ -1604,7 +1641,7 @@ export default function Home() {
           onReload={() => loadOrbit(orbitPeriod, orbitAnchor)}
         />
       ) : view === "admin" && user.role === "ADMIN" ? (
-        <AdminQuizHub quizzes={adminQuizzes} loading={adminLoading} error={adminError} onCreate={createAdminQuiz} onPublish={publishAdminQuiz} />
+        <AdminQuizHub quizzes={adminQuizzes} loading={adminLoading} error={adminError} onCreate={createAdminQuiz} onUpdate={updateAdminQuiz} onDelete={deleteAdminQuiz} onLoad={loadAdminQuiz} onPublish={publishAdminQuiz} />
       ) : view === "reviews" ? (
         <ReviewHub
           reviewData={reviewData}
