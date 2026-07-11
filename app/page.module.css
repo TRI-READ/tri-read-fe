@@ -2165,6 +2165,95 @@
   }
 }
 
+.orbitHub {
+  min-height: calc(100vh - 66px);
+  padding: 44px clamp(24px, 5vw, 72px) 64px;
+  color: #eaf3f0;
+  background: #101820;
+}
+
+.orbitHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  max-width: 1240px;
+  margin: 0 auto 34px;
+}
+
+.orbitHeader > div:first-child > span {
+  color: #73d7c1;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.orbitHeader h1 { margin: 8px 0; font-size: 38px; letter-spacing: 0; }
+.orbitHeader p { margin: 0; color: #a8bbb7; }
+.orbitControls { display: flex; align-items: center; gap: 14px; }
+.orbitSegment { display: flex; padding: 3px; border: 1px solid #3a4b50; }
+.orbitSegment button { min-width: 62px; height: 34px; border: 0; color: #9eb0ae; background: transparent; cursor: pointer; }
+.orbitSegment .orbitSegmentActive { color: #0d2924; background: #73d7c1; font-weight: 800; }
+.orbitPager { display: grid; grid-template-columns: 36px minmax(180px, auto) 36px; align-items: center; }
+.orbitPager button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #3a4b50; color: #dbe8e5; background: transparent; cursor: pointer; }
+.orbitPager strong { text-align: center; font-size: 13px; }
+
+.orbitSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1240px;
+  margin: 0 auto 20px;
+  border: 1px solid #304047;
+  background: #162129;
+}
+.orbitSummary > div { padding: 18px 22px; border-right: 1px solid #304047; }
+.orbitSummary > div:last-child { border-right: 0; }
+.orbitSummary span { display: block; margin-bottom: 7px; color: #91a6a2; font-size: 12px; }
+.orbitSummary strong { font-size: 25px; }
+.orbitSummary small { margin-left: 4px; color: #73d7c1; }
+
+.orbitGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.orbitGridWeek { grid-template-columns: repeat(5, 1fr); }
+.orbitDay { min-width: 0; padding: 16px; border: 1px solid #2c3b43; background: #141f27; }
+.planetStage { display: grid; place-items: center; height: 116px; }
+.planetEmpty, .planetLit { position: relative; display: block; width: 62px; height: 62px; border-radius: 50%; }
+.planetEmpty { border: 1px dashed #4a5960; background: #1d2930; }
+.planetLit {
+  background: radial-gradient(circle at 34% 29%, #f7ffca 0 7%, #6fe0c5 24%, #3c7f9d 62%, #18394b 100%);
+  box-shadow: 0 0 24px rgba(111, 224, 197, 0.64);
+}
+.planetLit i { position: absolute; inset: 27px -12px; border: 2px solid rgba(224, 246, 202, 0.58); border-radius: 50%; transform: rotate(-16deg); }
+.orbitDayMeta { display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid #2b3941; padding-top: 12px; }
+.orbitDayMeta span { color: #819690; font-size: 12px; }
+.orbitDayMeta strong { font-size: 20px; }
+.orbitDay > small { display: block; margin-top: 8px; overflow: hidden; color: #879b97; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.orbitDay > .orbitComplete { color: #73d7c1; }
+.orbitState { display: grid; place-items: center; min-height: 430px; max-width: 1240px; margin: auto; color: #a8bbb7; }
+.orbitState button { height: 38px; padding: 0 16px; border: 0; background: #73d7c1; cursor: pointer; }
+
+@media (max-width: 900px) {
+  .orbitHeader { align-items: flex-start; flex-direction: column; }
+  .orbitControls { width: 100%; justify-content: space-between; }
+  .orbitGrid { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+  .orbitGridWeek { grid-template-columns: repeat(5, minmax(130px, 1fr)); overflow-x: auto; }
+}
+
+@media (max-width: 600px) {
+  .orbitHub { padding: 28px 16px 48px; }
+  .orbitHeader h1 { font-size: 30px; }
+  .orbitControls { align-items: stretch; flex-direction: column; }
+  .orbitPager { grid-template-columns: 36px 1fr 36px; }
+  .orbitSummary { grid-template-columns: 1fr; }
+  .orbitSummary > div { border-right: 0; border-bottom: 1px solid #304047; }
+  .orbitGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .orbitGridWeek { display: grid; grid-template-columns: 1fr; overflow: visible; }
+}
+
 @media (max-width: 780px) {
   .reviewHub {
     display: block;

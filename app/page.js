@@ -971,6 +971,14 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
         </button>
         <button
           type="button"
+          className={view === "orbit" ? styles.headerNavActive : styles.headerNavItem}
+          onClick={() => onViewChange("orbit")}
+        >
+          <Orbit size={17} />
+          나의 Orbit
+        </button>
+        <button
+          type="button"
           className={view === "reviews" ? styles.headerNavActive : styles.headerNavItem}
           onClick={() => onViewChange("reviews")}
         >
@@ -995,6 +1003,95 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
         </button>
       </div>
     </header>
+  );
+}
+
+function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onReload }) {
+  const title = data
+    ? period === "WEEK"
+      ? `${data.startDate.replaceAll("-", ".")} - ${data.endDate.replaceAll("-", ".")}`
+      : new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" })
+          .format(new Date(`${data.startDate}T00:00:00`))
+    : "나의 학습 궤도";
+
+  return (
+    <section className={styles.orbitHub}>
+      <header className={styles.orbitHeader}>
+        <div>
+          <span>STUDY CONSTELLATION</span>
+          <h1>나의 Orbit</h1>
+          <p>문제를 푼 날은 행성이 생기고, 오답을 모두 회복하면 완전히 빛나요.</p>
+        </div>
+        <div className={styles.orbitControls}>
+          <div className={styles.orbitSegment}>
+            {[
+              ["WEEK", "주간"],
+              ["MONTH", "월간"],
+            ].map(([value, label]) => (
+              <button
+                type="button"
+                key={value}
+                className={period === value ? styles.orbitSegmentActive : ""}
+                onClick={() => onPeriodChange(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className={styles.orbitPager}>
+            <button type="button" onClick={() => onMove(-1)} aria-label="이전 기간" title="이전 기간">
+              <ArrowLeft size={17} />
+            </button>
+            <strong>{title}</strong>
+            <button type="button" onClick={() => onMove(1)} aria-label="다음 기간" title="다음 기간">
+              <ArrowRight size={17} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {loading ? (
+        <div className={styles.orbitState}><Orbit size={28} /> 궤도를 불러오는 중...</div>
+      ) : error ? (
+        <div className={styles.orbitState}><p>{error}</p><button type="button" onClick={onReload}>다시 시도</button></div>
+      ) : data ? (
+        <>
+          <div className={styles.orbitSummary}>
+            <div><span>학습한 날</span><strong>{data.completedDays}</strong><small>일</small></div>
+            <div><span>완전히 빛난 행성</span><strong>{data.fullyLitDays}</strong><small>개</small></div>
+            <div><span>점등률</span><strong>{data.completedDays ? Math.round(data.fullyLitDays * 100 / data.completedDays) : 0}</strong><small>%</small></div>
+          </div>
+          <div className={`${styles.orbitGrid} ${period === "WEEK" ? styles.orbitGridWeek : ""}`}>
+            {data.days.map((day) => {
+              const date = new Date(`${day.date}T00:00:00`);
+              return (
+                <article className={styles.orbitDay} key={day.date}>
+                  <div className={styles.planetStage}>
+                    <span
+                      className={day.status === "EMPTY" ? styles.planetEmpty : styles.planetLit}
+                      style={{ opacity: Math.max(0.35, day.brightness / 100) }}
+                    >
+                      <i />
+                    </span>
+                  </div>
+                  <div className={styles.orbitDayMeta}>
+                    <span>{new Intl.DateTimeFormat("ko-KR", { weekday: "short" }).format(date)}</span>
+                    <strong>{date.getDate()}</strong>
+                  </div>
+                  {day.score === null ? (
+                    <small>미응시</small>
+                  ) : day.status === "LIT" ? (
+                    <small className={styles.orbitComplete}>{day.score}/9 · 점등 완료</small>
+                  ) : (
+                    <small>{day.score}/9 · 복습 {day.recoveredCount}/{day.wrongCount}</small>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </section>
   );
 }
 
@@ -1027,6 +1124,11 @@ export default function Home() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewUpdating, setReviewUpdating] = useState(false);
+  const [orbitData, setOrbitData] = useState(null);
+  const [orbitPeriod, setOrbitPeriod] = useState("WEEK");
+  const [orbitAnchor, setOrbitAnchor] = useState(() => new Date().toISOString().slice(0, 10));
+  const [orbitLoading, setOrbitLoading] = useState(false);
+  const [orbitError, setOrbitError] = useState("");
 
   async function loadQuiz() {
     setQuizLoading(true);
@@ -1159,12 +1261,44 @@ export default function Home() {
     }
   }
 
+  async function loadOrbit(period = orbitPeriod, anchor = orbitAnchor) {
+    setOrbitLoading(true);
+    setOrbitError("");
+    try {
+      setOrbitData(await apiFetch(`/api/orbit?period=${period}&anchor=${anchor}`));
+    } catch (error) {
+      setOrbitError(getErrorMessage(error));
+    } finally {
+      setOrbitLoading(false);
+    }
+  }
+
+  function changeOrbitPeriod(period) {
+    setOrbitPeriod(period);
+    loadOrbit(period, orbitAnchor);
+  }
+
+  function moveOrbit(direction) {
+    const next = new Date(`${orbitAnchor}T00:00:00`);
+    if (orbitPeriod === "WEEK") {
+      next.setDate(next.getDate() + direction * 7);
+    } else {
+      next.setMonth(next.getMonth() + direction, 1);
+    }
+    const nextAnchor = next.toISOString().slice(0, 10);
+    setOrbitAnchor(nextAnchor);
+    loadOrbit(orbitPeriod, nextAnchor);
+  }
+
   useEffect(() => {
     if (user && view === "groups") {
       loadGroups();
     }
     if (user && view === "reviews") {
       loadReviews(reviewFilter);
+    }
+    if (user && view === "orbit") {
+      loadOrbit(orbitPeriod, orbitAnchor);
     }
   }, [user, view]);
 
@@ -1208,6 +1342,7 @@ export default function Home() {
       setLatestInviteCode("");
       setReviewData(null);
       setSelectedReviewId(null);
+      setOrbitData(null);
       setLoggingOut(false);
     }
   }
@@ -1292,6 +1427,16 @@ export default function Home() {
           onSelectGroup={handleSelectGroup}
           onRenewInvite={handleRenewInvite}
           onReload={() => loadGroups()}
+        />
+      ) : view === "orbit" ? (
+        <OrbitHub
+          data={orbitData}
+          period={orbitPeriod}
+          loading={orbitLoading}
+          error={orbitError}
+          onPeriodChange={changeOrbitPeriod}
+          onMove={moveOrbit}
+          onReload={() => loadOrbit(orbitPeriod, orbitAnchor)}
         />
       ) : view === "reviews" ? (
         <ReviewHub
