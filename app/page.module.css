@@ -2303,6 +2303,50 @@
   .activityRule { align-items: flex-start; }
 }
 
+.adminHub { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: calc(100vh - 66px); background: #f5f7f6; }
+.adminRail { padding: 28px 20px; border-right: 1px solid #d9e0de; background: #16242b; color: #edf5f2; }
+.adminRailHeading span, .adminEditorHeader span { color: #63cdb6; font-size: 10px; font-weight: 800; }
+.adminRailHeading h2 { margin: 6px 0 22px; font-size: 20px; }
+.adminQuizList { display: grid; gap: 8px; }
+.adminQuizList article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; border: 1px solid #33464d; background: #1c2d34; }
+.adminQuizList strong, .adminQuizList small { display: block; }
+.adminQuizList small { margin-top: 3px; color: #91aaa4; font-size: 10px; }
+.adminQuizList button { height: 30px; padding: 0 9px; border: 0; color: #12332c; background: #77d8c1; font-weight: 800; cursor: pointer; }
+.adminEditor { width: min(1040px, 100%); margin: 0 auto; padding: 36px 42px 64px; }
+.adminEditorHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.adminEditorHeader h1 { margin: 7px 0 4px; font-size: 30px; letter-spacing: 0; }
+.adminEditorHeader p { margin: 0; color: #70817d; }
+.adminEditor label { display: grid; gap: 6px; color: #40534f; font-size: 12px; font-weight: 700; }
+.adminEditor input, .adminEditor textarea { width: 100%; border: 1px solid #cfd9d6; background: #fff; padding: 10px 11px; color: #263a36; font: inherit; resize: vertical; }
+.adminEditor input:focus, .adminEditor textarea:focus { outline: 2px solid #82d9c5; outline-offset: 1px; }
+.adminPassageTabs { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; border: 1px solid #ccd7d4; }
+.adminPassageTabs button { height: 42px; border: 0; border-right: 1px solid #ccd7d4; color: #61736f; background: #edf1f0; cursor: pointer; }
+.adminPassageTabs button:last-child { border-right: 0; }
+.adminPassageTabs .adminPassageActive { color: #123b33; background: #9ce1d1; font-weight: 800; }
+.adminPassageEditor, .adminQuestion { padding: 20px; border: 1px solid #d5dddb; background: #fff; }
+.adminTwoColumns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.adminQuestions { display: grid; gap: 12px; margin-top: 12px; }
+.adminQuestion h2 { margin: 0 0 14px; font-size: 17px; }
+.adminQuestion > label { margin-top: 12px; }
+.adminOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.adminOptions label { display: grid; grid-template-columns: 18px 20px 1fr; align-items: center; gap: 4px; }
+.adminOptions label > input:first-child { width: 16px; }
+.adminOptions span { color: #19806e; text-align: center; }
+.adminFooter { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #d5dddb; color: #70817d; font-size: 12px; }
+.adminError { margin-bottom: 14px; padding: 11px 13px; color: #8b2b2b; border: 1px solid #e5bdbd; background: #fff0f0; }
+
+@media (max-width: 900px) {
+  .adminHub { grid-template-columns: 1fr; }
+  .adminRail { border-right: 0; }
+  .adminQuizList { grid-template-columns: repeat(2, 1fr); }
+  .adminEditor { padding: 28px 20px 48px; }
+}
+@media (max-width: 600px) {
+  .adminEditorHeader { align-items: stretch; flex-direction: column; }
+  .adminTwoColumns, .adminOptions, .adminQuizList { grid-template-columns: 1fr; }
+  .adminFooter { align-items: stretch; flex-direction: column; }
+}
+
 @media (max-width: 780px) {
   .reviewHub {
     display: block;

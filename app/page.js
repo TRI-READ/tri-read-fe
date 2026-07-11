@@ -1021,6 +1021,16 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
           <NotebookPen size={17} />
           오답노트
         </button>
+        {user.role === "ADMIN" && (
+          <button
+            type="button"
+            className={view === "admin" ? styles.headerNavActive : styles.headerNavItem}
+            onClick={() => onViewChange("admin")}
+          >
+            <Rocket size={17} />
+            퀴즈 관리
+          </button>
+        )}
       </nav>
       <div className={styles.headerActions}>
         <span className={styles.userBadge}>
@@ -1039,6 +1049,89 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
         </button>
       </div>
     </header>
+  );
+}
+
+function blankAdminQuiz() {
+  return {
+    challengeDate: new Date().toISOString().slice(0, 10),
+    passages: Array.from({ length: 3 }, () => ({
+      title: "", topic: "", content: "",
+      questions: Array.from({ length: 3 }, () => ({
+        content: "", options: ["", "", "", ""], correctOptionPosition: 1,
+        explanation: "", evidence: "",
+      })),
+    })),
+  };
+}
+
+function AdminQuizHub({ quizzes, loading, error, onCreate, onPublish }) {
+  const [draft, setDraft] = useState(blankAdminQuiz);
+  const [activePassage, setActivePassage] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  function updatePassage(field, value) {
+    setDraft((current) => ({ ...current, passages: current.passages.map((p, i) => i === activePassage ? { ...p, [field]: value } : p) }));
+  }
+  function updateQuestion(questionIndex, field, value) {
+    setDraft((current) => ({ ...current, passages: current.passages.map((p, i) => i !== activePassage ? p : {
+      ...p, questions: p.questions.map((q, qi) => qi === questionIndex ? { ...q, [field]: value } : q),
+    }) }));
+  }
+  function updateOption(questionIndex, optionIndex, value) {
+    const options = [...draft.passages[activePassage].questions[questionIndex].options];
+    options[optionIndex] = value;
+    updateQuestion(questionIndex, "options", options);
+  }
+  async function submit(event) {
+    event.preventDefault(); setSaving(true);
+    try { await onCreate(draft); setDraft(blankAdminQuiz()); setActivePassage(0); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <section className={styles.adminHub}>
+      <aside className={styles.adminRail}>
+        <div className={styles.adminRailHeading}><span>QUIZ STUDIO</span><h2>퀴즈 관리</h2></div>
+        <div className={styles.adminQuizList}>
+          {quizzes.map((quiz) => (
+            <article key={quiz.quizSetId}>
+              <div><strong>{quiz.challengeDate}</strong><small>{quiz.status}</small></div>
+              {quiz.status !== "PUBLISHED" && <button type="button" onClick={() => onPublish(quiz.quizSetId)}>발행</button>}
+            </article>
+          ))}
+        </div>
+      </aside>
+      <form className={styles.adminEditor} onSubmit={submit}>
+        <header className={styles.adminEditorHeader}>
+          <div><span>MANUAL DRAFT</span><h1>새 퀴즈 만들기</h1><p>고3 난이도 · 3지문 · 9문제</p></div>
+          <label>발행 예정일<input type="date" value={draft.challengeDate} onChange={(e) => setDraft({ ...draft, challengeDate: e.target.value })} required /></label>
+        </header>
+        {error && <div className={styles.adminError}>{error}</div>}
+        <div className={styles.adminPassageTabs}>
+          {[0, 1, 2].map((index) => <button key={index} type="button" className={activePassage === index ? styles.adminPassageActive : ""} onClick={() => setActivePassage(index)}>지문 {index + 1}</button>)}
+        </div>
+        <section className={styles.adminPassageEditor}>
+          <div className={styles.adminTwoColumns}>
+            <label>제목<input value={draft.passages[activePassage].title} onChange={(e) => updatePassage("title", e.target.value)} /></label>
+            <label>주제<input value={draft.passages[activePassage].topic} onChange={(e) => updatePassage("topic", e.target.value)} /></label>
+          </div>
+          <label>지문<textarea rows="9" value={draft.passages[activePassage].content} onChange={(e) => updatePassage("content", e.target.value)} required /></label>
+        </section>
+        <div className={styles.adminQuestions}>
+          {draft.passages[activePassage].questions.map((question, qi) => (
+            <section className={styles.adminQuestion} key={qi}>
+              <h2>문제 {qi + 1}</h2>
+              <label>질문<textarea rows="2" value={question.content} onChange={(e) => updateQuestion(qi, "content", e.target.value)} required /></label>
+              <div className={styles.adminOptions}>{question.options.map((option, oi) => <label key={oi}><input type="radio" name={`correct-${activePassage}-${qi}`} checked={question.correctOptionPosition === oi + 1} onChange={() => updateQuestion(qi, "correctOptionPosition", oi + 1)} /><span>{oi + 1}</span><input value={option} onChange={(e) => updateOption(qi, oi, e.target.value)} required /></label>)}</div>
+              <label>해설<textarea rows="2" value={question.explanation} onChange={(e) => updateQuestion(qi, "explanation", e.target.value)} required /></label>
+              <label>근거<textarea rows="2" value={question.evidence} onChange={(e) => updateQuestion(qi, "evidence", e.target.value)} /></label>
+            </section>
+          ))}
+        </div>
+        <footer className={styles.adminFooter}><span>{loading ? "목록 갱신 중" : "모든 지문 입력 후 초안으로 저장됩니다."}</span><button className={styles.primaryButton} type="submit" disabled={saving}>{saving ? "저장 중..." : "DRAFT 저장"}</button></footer>
+      </form>
+    </section>
   );
 }
 
@@ -1167,6 +1260,9 @@ export default function Home() {
   const [orbitAnchor, setOrbitAnchor] = useState(() => new Date().toISOString().slice(0, 10));
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitError, setOrbitError] = useState("");
+  const [adminQuizzes, setAdminQuizzes] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
 
   async function loadQuiz() {
     setQuizLoading(true);
@@ -1339,6 +1435,23 @@ export default function Home() {
     loadOrbit(orbitPeriod, nextAnchor);
   }
 
+  async function loadAdminQuizzes() {
+    setAdminLoading(true); setAdminError("");
+    try { setAdminQuizzes(await apiFetch("/api/admin/quizzes")); }
+    catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function createAdminQuiz(draft) {
+    setAdminError("");
+    try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(); }
+    catch (error) { setAdminError(getErrorMessage(error)); throw error; }
+  }
+  async function publishAdminQuiz(quizSetId) {
+    setAdminError("");
+    try { await apiFetch(`/api/admin/quizzes/${quizSetId}/publish`, { method: "POST" }); await loadAdminQuizzes(); }
+    catch (error) { setAdminError(getErrorMessage(error)); }
+  }
+
   useEffect(() => {
     if (user && view === "groups") {
       loadGroups();
@@ -1349,6 +1462,7 @@ export default function Home() {
     if (user && view === "orbit") {
       loadOrbit(orbitPeriod, orbitAnchor);
     }
+    if (user?.role === "ADMIN" && view === "admin") loadAdminQuizzes();
   }, [user, view]);
 
   useEffect(() => {
@@ -1489,6 +1603,8 @@ export default function Home() {
           onMove={moveOrbit}
           onReload={() => loadOrbit(orbitPeriod, orbitAnchor)}
         />
+      ) : view === "admin" && user.role === "ADMIN" ? (
+        <AdminQuizHub quizzes={adminQuizzes} loading={adminLoading} error={adminError} onCreate={createAdminQuiz} onPublish={publishAdminQuiz} />
       ) : view === "reviews" ? (
         <ReviewHub
           reviewData={reviewData}
