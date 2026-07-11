@@ -597,6 +597,7 @@ function GroupActionDialog({ mode, onClose, onSubmit, submitting, error }) {
 function GroupHub({
   groups,
   selectedGroup,
+  activity,
   loading,
   error,
   latestInviteCode,
@@ -713,6 +714,41 @@ function GroupHub({
                 </div>
               </section>
             )}
+
+            <section className={styles.groupActivitySection}>
+              <div className={styles.sectionHeading}>
+                <div>
+                  <span>WEEKLY ACTIVITY</span>
+                  <h2>이번 주 랭킹</h2>
+                </div>
+                <strong>{activity?.todayCompletedCount || 0}/{activity?.memberCount || selectedGroup.memberCount} 오늘 완료</strong>
+              </div>
+              <div className={styles.activityRule}>
+                <Sparkles size={17} />
+                퀴즈 완료 10점 + 정답 1점 + 오답 회복 2점
+              </div>
+              <div className={styles.rankingList}>
+                {(activity?.ranking || []).map((member) => (
+                  <article className={styles.rankingRow} key={member.userId}>
+                    <span className={member.rank <= 3 ? styles.rankTop : styles.rankNumber}>
+                      {member.rank === 1 ? <Crown size={18} /> : member.rank}
+                    </span>
+                    <span className={styles.memberAvatar}>{member.displayName.slice(0, 1)}</span>
+                    <div className={styles.rankingIdentity}>
+                      <strong>{member.displayName}</strong>
+                      <small>{member.todayCompleted ? "오늘 퀴즈 완료" : "오늘 미참여"}</small>
+                    </div>
+                    <div className={styles.rankingMetrics}>
+                      <span><small>풀이</small><strong>{member.completedDays}일</strong></span>
+                      <span><small>평균</small><strong>{member.averageScore}/9</strong></span>
+                      <span><small>9/9</small><strong>{member.perfectCount}회</strong></span>
+                      <span><small>점등</small><strong>{member.fullyLitCount}개</strong></span>
+                    </div>
+                    <strong className={styles.activityScore}>{member.activityScore} pt</strong>
+                  </article>
+                ))}
+              </div>
+            </section>
 
             <section className={styles.memberSection}>
               <div className={styles.sectionHeading}>
@@ -1114,6 +1150,7 @@ export default function Home() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupError, setGroupError] = useState("");
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [groupActivity, setGroupActivity] = useState(null);
   const [groupAction, setGroupAction] = useState(null);
   const [groupActionSubmitting, setGroupActionSubmitting] = useState(false);
   const [groupActionError, setGroupActionError] = useState("");
@@ -1155,10 +1192,15 @@ export default function Home() {
       setGroups(myGroups);
       const groupId = preferredGroupId || selectedGroup?.groupId || myGroups[0]?.groupId;
       if (groupId) {
-        const detail = await apiFetch(`/api/groups/${groupId}`);
+        const [detail, activity] = await Promise.all([
+          apiFetch(`/api/groups/${groupId}`),
+          apiFetch(`/api/groups/${groupId}/activity`),
+        ]);
         setSelectedGroup(detail);
+        setGroupActivity(activity);
       } else {
         setSelectedGroup(null);
+        setGroupActivity(null);
       }
     } catch (error) {
       setGroupError(getErrorMessage(error));
@@ -1172,7 +1214,12 @@ export default function Home() {
     setGroupError("");
     setLatestInviteCode("");
     try {
-      setSelectedGroup(await apiFetch(`/api/groups/${groupId}`));
+      const [detail, activity] = await Promise.all([
+        apiFetch(`/api/groups/${groupId}`),
+        apiFetch(`/api/groups/${groupId}/activity`),
+      ]);
+      setSelectedGroup(detail);
+      setGroupActivity(activity);
     } catch (error) {
       setGroupError(getErrorMessage(error));
     } finally {
@@ -1190,6 +1237,7 @@ export default function Home() {
       });
       const detail = groupAction === "create" ? response.group : response;
       setSelectedGroup(detail);
+      setGroupActivity(await apiFetch(`/api/groups/${detail.groupId}/activity`));
       setLatestInviteCode(groupAction === "create" ? response.inviteCode : "");
       setGroupAction(null);
       const myGroups = await apiFetch("/api/groups/my");
@@ -1339,6 +1387,7 @@ export default function Home() {
       setView("quiz");
       setGroups([]);
       setSelectedGroup(null);
+      setGroupActivity(null);
       setLatestInviteCode("");
       setReviewData(null);
       setSelectedReviewId(null);
@@ -1413,6 +1462,7 @@ export default function Home() {
         <GroupHub
           groups={groups}
           selectedGroup={selectedGroup}
+          activity={groupActivity}
           loading={groupsLoading}
           error={groupError}
           latestInviteCode={latestInviteCode}

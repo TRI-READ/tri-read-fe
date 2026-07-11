@@ -2254,6 +2254,54 @@
   .orbitGridWeek { display: grid; grid-template-columns: 1fr; overflow: visible; }
 }
 
+.groupActivitySection {
+  margin-bottom: 30px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #dce2e1;
+}
+
+.activityRule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+  color: #526965;
+  font-size: 12px;
+}
+
+.rankingList { border-top: 1px solid #dce2e1; }
+.rankingRow {
+  display: grid;
+  grid-template-columns: 38px 42px minmax(130px, 1fr) minmax(300px, 1.8fr) 72px;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  border-bottom: 1px solid #e5e9e8;
+}
+.rankTop, .rankNumber { display: grid; place-items: center; width: 30px; height: 30px; color: #526965; font-weight: 800; }
+.rankTop { color: #176f60; background: #dff3ed; }
+.rankingIdentity { min-width: 0; }
+.rankingIdentity strong, .rankingIdentity small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rankingIdentity small { margin-top: 4px; color: #758681; font-size: 11px; }
+.rankingMetrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rankingMetrics span { min-width: 0; }
+.rankingMetrics small, .rankingMetrics strong { display: block; }
+.rankingMetrics small { color: #84938f; font-size: 10px; }
+.rankingMetrics strong { margin-top: 3px; color: #2e413d; font-size: 13px; }
+.activityScore { color: #176f60; text-align: right; font-size: 14px; }
+
+@media (max-width: 820px) {
+  .rankingRow { grid-template-columns: 32px 38px minmax(100px, 1fr) 64px; padding: 10px 0; }
+  .rankingMetrics { grid-column: 3 / -1; grid-row: 2; }
+  .activityScore { grid-column: 4; grid-row: 1; }
+}
+
+@media (max-width: 480px) {
+  .rankingRow { grid-template-columns: 28px 36px minmax(0, 1fr) 58px; gap: 8px; }
+  .rankingMetrics { grid-template-columns: repeat(2, 1fr); }
+  .activityRule { align-items: flex-start; }
+}
+
 @media (max-width: 780px) {
   .reviewHub {
     display: block;
