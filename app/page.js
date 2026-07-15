@@ -144,7 +144,7 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
 
   return (
     <main className={styles.authShell}>
-      <section className={styles.authVisual} aria-label="TRI:READ weekday orbit">
+      <section className={styles.authVisual} aria-label="TRI:READ 서비스 소개">
         <Brand />
         <div className={styles.orbitVisual} aria-hidden="true">
           <span className={styles.orbitLineOne} />
@@ -156,13 +156,22 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
           <span className={styles.starTwo} />
           <span className={styles.starThree} />
         </div>
-        <div className={styles.authOrbitCopy}>
-          <p>이번 주의 궤도</p>
-          <div className={styles.weekOrbit}>
-            {WEEKDAYS.map((day, index) => (
-              <span key={day} className={index === new Date().getDay() - 1 ? styles.todayDot : ""}>
-                <i />
-                {day}
+        <div className={styles.authIntro}>
+          <p className={styles.authIntroEyebrow}>DAILY READING</p>
+          <h2>하루 한 편, 부담 없이 읽어요</h2>
+          <p className={styles.authIntroDescription}>
+            세 영역 중 하나를 골라 지문 1개와 문제 3개를 풉니다.
+          </p>
+          <div className={styles.authFacts} aria-label="학습 구성">
+            <span><strong>1</strong> 지문</span>
+            <span><strong>3</strong> 문제</span>
+            <span><strong>10~15</strong>분</span>
+          </div>
+          <div className={styles.authAreas} aria-label="선택 가능한 영역">
+            {PASSAGE_AREAS.map(({ label, icon: Icon }) => (
+              <span key={label}>
+                <Icon size={15} />
+                {label}
               </span>
             ))}
           </div>
@@ -175,7 +184,7 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
         </div>
         <div className={styles.authFormWrap}>
           <p className={styles.eyebrow}>WEEKDAY READING</p>
-          <h1>{mode === "login" ? "오늘의 독해를 이어가세요" : "나만의 궤도를 시작하세요"}</h1>
+          <h1>{mode === "login" ? "오늘의 독해를 이어가세요" : "가벼운 독해 습관을 시작하세요"}</h1>
 
           <div className={styles.authTabs} role="tablist" aria-label="인증 방식">
             <button
