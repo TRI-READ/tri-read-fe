@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  Atom,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -12,7 +13,9 @@ import {
   Copy,
   Crown,
   Clock3,
+  Flame,
   KeyRound,
+  Landmark,
   LogIn,
   LogOut,
   NotebookPen,
@@ -20,6 +23,7 @@ import {
   Plus,
   RefreshCw,
   Rocket,
+  Scale,
   Send,
   Sparkles,
   UserPlus,
@@ -32,6 +36,23 @@ import { ApiError, apiFetch, resetCsrfToken } from "@/lib/api";
 import styles from "./page.module.css";
 
 const WEEKDAYS = ["월", "화", "수", "목", "금"];
+const PASSAGE_AREAS = [
+  {
+    label: "인문·사회",
+    description: "사상, 사회 구조와 인간을 읽어요.",
+    icon: Landmark,
+  },
+  {
+    label: "과학·기술",
+    description: "원리, 기술과 자연 현상을 읽어요.",
+    icon: Atom,
+  },
+  {
+    label: "경제·법·융합",
+    description: "제도, 시장과 복합 쟁점을 읽어요.",
+    icon: Scale,
+  },
+];
 
 function formatToday() {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -260,7 +281,43 @@ function WeekOrbit({ completed }) {
   );
 }
 
-function QuizRail({ quiz, selectedCount, activePassage, onPassageChange, result }) {
+function PassagePicker({ quiz, onChoose }) {
+  return (
+    <section className={styles.passagePicker}>
+      <header className={styles.passagePickerHeader}>
+        <p className={styles.eyebrow}>TODAY'S READING</p>
+        <h1>오늘은 어떤 영역을 읽을까요?</h1>
+        <p>하나를 골라 3문제만 풀어요. 예상 시간은 10~15분입니다.</p>
+      </header>
+      <div className={styles.passageChoiceGrid}>
+        {quiz.passages.map((passage, index) => {
+          const area = PASSAGE_AREAS[index] || PASSAGE_AREAS[0];
+          const AreaIcon = area.icon;
+          return (
+            <button
+              className={styles.passageChoice}
+              key={passage.passageId}
+              type="button"
+              onClick={() => onChoose(index)}
+            >
+              <span className={styles.passageChoiceIcon}><AreaIcon size={23} /></span>
+              <span className={styles.passageChoiceBody}>
+                <small>{area.label}</small>
+                <strong>{passage.title}</strong>
+                <p>{area.description}</p>
+              </span>
+              <span className={styles.passageChoiceMeta}>3문제 · 약 15분 <ChevronRight size={16} /></span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function QuizRail({ quiz, selectedCount, activePassage, onChangeArea, result }) {
+  const passage = quiz.passages[activePassage];
+  const area = PASSAGE_AREAS[activePassage] || PASSAGE_AREAS[0];
   return (
     <aside className={styles.studyRail}>
       <div className={styles.dateBlock}>
@@ -274,30 +331,21 @@ function QuizRail({ quiz, selectedCount, activePassage, onPassageChange, result 
       <div className={styles.progressBlock}>
         <div>
           <span>진행률</span>
-          <strong>{result ? 9 : selectedCount} / 9</strong>
+          <strong>{result ? 3 : selectedCount} / 3</strong>
         </div>
         <div className={styles.progressTrack}>
-          <span style={{ width: `${((result ? 9 : selectedCount) / 9) * 100}%` }} />
+          <span style={{ width: `${((result ? 3 : selectedCount) / 3) * 100}%` }} />
         </div>
       </div>
 
-      <nav className={styles.passageNav} aria-label="지문 선택">
-        {quiz.passages.map((passage, index) => (
-          <button
-            key={passage.passageId}
-            type="button"
-            className={activePassage === index ? styles.passageNavActive : styles.passageNavItem}
-            onClick={() => onPassageChange(index)}
-          >
-            <span>{index + 1}</span>
-            <div>
-              <strong>{passage.topic}</strong>
-              <small>{passage.title}</small>
-            </div>
-            <ChevronRight size={16} />
-          </button>
-        ))}
-      </nav>
+      <div className={styles.selectedArea}>
+        <small>선택한 영역</small>
+        <strong>{area.label}</strong>
+        <span>{passage.title}</span>
+        {!result && (
+          <button type="button" onClick={onChangeArea}>영역 변경</button>
+        )}
+      </div>
 
       <WeekOrbit completed={Boolean(result || quiz.attempt)} />
     </aside>
@@ -356,7 +404,6 @@ function QuizWorkspace({
   selections,
   onSelect,
   activePassage,
-  setActivePassage,
   result,
   onSubmit,
   submitting,
@@ -367,9 +414,8 @@ function QuizWorkspace({
     () => new Map((result?.answers || []).map((answer) => [answer.questionId, answer])),
     [result],
   );
-  const firstQuestionNumber = activePassage * 3 + 1;
   const selectedCount = Object.keys(selections).length;
-  const isLastPassage = activePassage === quiz.passages.length - 1;
+  const area = PASSAGE_AREAS[activePassage] || PASSAGE_AREAS[0];
 
   return (
     <section className={styles.quizWorkspace}>
@@ -377,11 +423,11 @@ function QuizWorkspace({
         <header className={styles.resultBanner}>
           <div className={styles.scoreOrb}>
             <strong>{result.score}</strong>
-            <span>/ 9</span>
+            <span>/ 3</span>
           </div>
           <div>
             <p className={styles.eyebrow}>TODAY COMPLETE</p>
-            <h1>{result.score >= 7 ? "안정적인 궤도에 올랐어요" : "오답이 다음 궤도를 만들어요"}</h1>
+            <h1>{result.score === 3 ? "오늘 학습을 깔끔하게 마쳤어요" : "오답은 짧게 복습해 두세요"}</h1>
             <span>정답 {result.score}개 · 복습 {result.wrongCount}개</span>
           </div>
         </header>
@@ -389,7 +435,7 @@ function QuizWorkspace({
 
       <div className={styles.quizHeading}>
         <div>
-          <p className={styles.eyebrow}>PASSAGE {activePassage + 1}</p>
+          <p className={styles.eyebrow}>{area.label}</p>
           <h1>{passage.title}</h1>
         </div>
         <span className={styles.topicBadge}>{passage.topic}</span>
@@ -411,7 +457,7 @@ function QuizWorkspace({
             <QuestionBlock
               key={question.questionId}
               question={question}
-              number={firstQuestionNumber + index}
+              number={index + 1}
               selectedOptionId={selections[question.questionId]}
               onSelect={onSelect}
               resultItem={resultByQuestion.get(question.questionId)}
@@ -423,35 +469,15 @@ function QuizWorkspace({
       {submitError && <p className={styles.submitError}>{submitError}</p>}
 
       <footer className={styles.quizFooter}>
-        <button
-          className={styles.secondaryButton}
-          type="button"
-          onClick={() => setActivePassage((current) => current - 1)}
-          disabled={activePassage === 0}
-        >
-          <ArrowLeft size={18} />
-          이전 지문
-        </button>
-
-        <span>{activePassage + 1} / 3</span>
-
-        {!isLastPassage ? (
-          <button
-            className={styles.primaryButton}
-            type="button"
-            onClick={() => setActivePassage((current) => current + 1)}
-          >
-            다음 지문
-            <ArrowRight size={18} />
-          </button>
-        ) : !result ? (
+        <span>한 지문 · 3문제</span>
+        {!result ? (
           <button
             className={styles.primaryButton}
             type="button"
             onClick={onSubmit}
-            disabled={selectedCount !== 9 || submitting}
+            disabled={selectedCount !== 3 || submitting}
           >
-            {submitting ? "채점 중..." : selectedCount === 9 ? "제출하고 채점" : `${9 - selectedCount}문제 남음`}
+            {submitting ? "채점 중..." : selectedCount === 3 ? "제출하고 채점" : `${3 - selectedCount}문제 남음`}
             {!submitting && <Send size={17} />}
           </button>
         ) : (
@@ -472,20 +498,12 @@ function CompletedView({ quiz }) {
         <Rocket size={29} />
       </div>
       <p className={styles.eyebrow}>TODAY COMPLETE</p>
-      <h1>오늘의 궤도를 완성했어요</h1>
+      <h1>오늘의 학습을 마쳤어요</h1>
       <div className={styles.completedScore}>
         <strong>{quiz.attempt.score}</strong>
-        <span>/ 9</span>
+        <span>/ {quiz.attempt.totalQuestions || 3}</span>
       </div>
-      <p>세 지문의 기록이 저장됐어요. 내일 새로운 독해로 이어집니다.</p>
-      <div className={styles.completedPassages}>
-        {quiz.passages.map((passage, index) => (
-          <span key={passage.passageId}>
-            <i>{index + 1}</i>
-            {passage.topic}
-          </span>
-        ))}
-      </div>
+      <p>한 지문 3문제의 기록이 저장됐어요. 내일 다른 영역을 골라도 좋아요.</p>
     </section>
   );
 }
@@ -740,8 +758,8 @@ function GroupHub({
                     </div>
                     <div className={styles.rankingMetrics}>
                       <span><small>풀이</small><strong>{member.completedDays}일</strong></span>
-                      <span><small>평균</small><strong>{member.averageScore}/9</strong></span>
-                      <span><small>9/9</small><strong>{member.perfectCount}회</strong></span>
+                      <span><small>평균</small><strong>{member.averageScore}점</strong></span>
+                      <span><small>만점</small><strong>{member.perfectCount}회</strong></span>
                       <span><small>점등</small><strong>{member.fullyLitCount}개</strong></span>
                     </div>
                     <strong className={styles.activityScore}>{member.activityScore} pt</strong>
@@ -948,7 +966,7 @@ function ReviewHub({
                 <Orbit size={20} />
                 <span>
                   <strong>{selectedReview.status === "RECOVERED" ? "이 오답은 궤도에 반영됐어요" : "이해했다면 오늘의 빛을 더 밝힐 수 있어요"}</strong>
-                  <small>9/9인 날은 복습 없이 처음부터 완전히 빛납니다.</small>
+                  <small>전부 맞힌 날은 복습 없이 바로 완료됩니다.</small>
                 </span>
               </div>
               <button
@@ -975,7 +993,7 @@ function ReviewHub({
             <p>
               {filter === "RECOVERED"
                 ? "오답을 복습하면 완료 기록이 여기에 모입니다."
-                : "9/9인 날의 행성은 복습 없이 처음부터 완전히 빛나요."}
+                : "모두 맞힌 날은 복습 없이 바로 완료됩니다."}
             </p>
           </div>
         )}
@@ -984,7 +1002,7 @@ function ReviewHub({
   );
 }
 
-function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
+function AppHeader({ user, streak, view, onViewChange, onLogout, loggingOut }) {
   return (
     <header className={styles.appHeader}>
       <Brand />
@@ -1010,8 +1028,8 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
           className={view === "orbit" ? styles.headerNavActive : styles.headerNavItem}
           onClick={() => onViewChange("orbit")}
         >
-          <Orbit size={17} />
-          나의 Orbit
+          <CalendarDays size={17} />
+          학습 기록
         </button>
         <button
           type="button"
@@ -1033,6 +1051,14 @@ function AppHeader({ user, view, onViewChange, onLogout, loggingOut }) {
         )}
       </nav>
       <div className={styles.headerActions}>
+        <span
+          className={`${styles.streakBadge} ${streak.completedToday ? styles.streakBadgeActive : ""}`}
+          title={streak.completedToday ? "오늘 학습 완료" : "오늘 학습을 완료하면 연속 기록이 이어져요"}
+        >
+          <Flame size={19} fill="currentColor" />
+          <strong>{streak.currentStreak}</strong>
+          <small>일 연속</small>
+        </span>
         <span className={styles.userBadge}>
           <CircleUserRound size={18} />
           {user.displayName}
@@ -1163,15 +1189,15 @@ function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onRelo
       ? `${data.startDate.replaceAll("-", ".")} - ${data.endDate.replaceAll("-", ".")}`
       : new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long" })
           .format(new Date(`${data.startDate}T00:00:00`))
-    : "나의 학습 궤도";
+    : "학습 기록";
 
   return (
     <section className={styles.orbitHub}>
       <header className={styles.orbitHeader}>
         <div>
-          <span>STUDY CONSTELLATION</span>
-          <h1>나의 Orbit</h1>
-          <p>문제를 푼 날은 행성이 생기고, 오답을 모두 회복하면 완전히 빛나요.</p>
+          <span>학습 현황</span>
+          <h1>학습 기록</h1>
+          <p>문제를 푼 날과 오답 복습 현황을 한눈에 확인하세요.</p>
         </div>
         <div className={styles.orbitControls}>
           <div className={styles.orbitSegment}>
@@ -1202,15 +1228,15 @@ function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onRelo
       </header>
 
       {loading ? (
-        <div className={styles.orbitState}><Orbit size={28} /> 궤도를 불러오는 중...</div>
+        <div className={styles.orbitState}><Orbit size={28} /> 학습 기록을 불러오는 중...</div>
       ) : error ? (
         <div className={styles.orbitState}><p>{error}</p><button type="button" onClick={onReload}>다시 시도</button></div>
       ) : data ? (
         <>
           <div className={styles.orbitSummary}>
             <div><span>학습한 날</span><strong>{data.completedDays}</strong><small>일</small></div>
-            <div><span>완전히 빛난 행성</span><strong>{data.fullyLitDays}</strong><small>개</small></div>
-            <div><span>점등률</span><strong>{data.completedDays ? Math.round(data.fullyLitDays * 100 / data.completedDays) : 0}</strong><small>%</small></div>
+            <div><span>복습 완료</span><strong>{data.fullyLitDays}</strong><small>일</small></div>
+            <div><span>완료율</span><strong>{data.completedDays ? Math.round(data.fullyLitDays * 100 / data.completedDays) : 0}</strong><small>%</small></div>
           </div>
           <div className={`${styles.orbitGrid} ${period === "WEEK" ? styles.orbitGridWeek : ""}`}>
             {data.days.map((day) => {
@@ -1231,11 +1257,11 @@ function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onRelo
                     <strong>{date.getDate()}</strong>
                   </div>
                   {day.score === null ? (
-                    <small>미응시</small>
+                    <small>미완료</small>
                   ) : day.status === "LIT" ? (
-                    <small className={styles.orbitComplete}>{day.score}/9 · 점등 완료</small>
+                    <small className={styles.orbitComplete}>{day.score}/{day.score + day.wrongCount} · 복습 완료</small>
                   ) : (
-                    <small>{day.score}/9 · 복습 {day.recoveredCount}/{day.wrongCount}</small>
+                    <small>{day.score}/{day.score + day.wrongCount} · 복습 {day.recoveredCount}/{day.wrongCount}</small>
                   )}
                 </article>
               );
@@ -1255,9 +1281,10 @@ export default function Home() {
   const [quiz, setQuiz] = useState(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizError, setQuizError] = useState("");
-  const [activePassage, setActivePassage] = useState(0);
+  const [activePassage, setActivePassage] = useState(null);
   const [selections, setSelections] = useState({});
   const [result, setResult] = useState(null);
+  const [streak, setStreak] = useState({ currentStreak: 0, completedToday: false });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -1294,12 +1321,20 @@ export default function Home() {
       setQuiz(todayQuiz);
       setSelections({});
       setResult(null);
-      setActivePassage(0);
+      setActivePassage(null);
     } catch (error) {
       setQuiz(null);
       setQuizError(getErrorMessage(error));
     } finally {
       setQuizLoading(false);
+    }
+  }
+
+  async function loadStreak() {
+    try {
+      setStreak(await apiFetch("/api/orbit/streak"));
+    } catch {
+      setStreak({ currentStreak: 0, completedToday: false });
     }
   }
 
@@ -1507,7 +1542,7 @@ export default function Home() {
       try {
         const currentUser = await apiFetch("/api/auth/me");
         setUser(currentUser);
-        await loadQuiz();
+        await Promise.all([loadQuiz(), loadStreak()]);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) {
           setBootError("백엔드 서버 연결을 확인해 주세요.");
@@ -1523,7 +1558,7 @@ export default function Home() {
     setUser(authenticatedUser);
     setBootError("");
     setView("quiz");
-    await loadQuiz();
+    await Promise.all([loadQuiz(), loadStreak()]);
   }
 
   async function handleLogout() {
@@ -1536,6 +1571,8 @@ export default function Home() {
       setQuiz(null);
       setResult(null);
       setSelections({});
+      setActivePassage(null);
+      setStreak({ currentStreak: 0, completedToday: false });
       setView("quiz");
       setGroups([]);
       setSelectedGroup(null);
@@ -1557,18 +1594,16 @@ export default function Home() {
   }
 
   async function handleSubmit() {
-    if (!quiz || Object.keys(selections).length !== 9) {
+    if (!quiz || activePassage === null || Object.keys(selections).length !== 3) {
       return;
     }
 
     setSubmitting(true);
     setSubmitError("");
-    const answers = quiz.passages.flatMap((passage) =>
-      passage.questions.map((question) => ({
+    const answers = quiz.passages[activePassage].questions.map((question) => ({
         questionId: question.questionId,
         selectedOptionId: selections[question.questionId],
-      })),
-    );
+      }));
 
     try {
       const quizResult = await apiFetch(`/api/quizzes/${quiz.quizSetId}/attempts`, {
@@ -1576,7 +1611,7 @@ export default function Home() {
         body: JSON.stringify({ answers }),
       });
       setResult(quizResult);
-      setActivePassage(0);
+      await loadStreak();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setSubmitError(getErrorMessage(error));
@@ -1604,6 +1639,7 @@ export default function Home() {
     <main className={styles.appShell}>
       <AppHeader
         user={user}
+        streak={streak}
         view={view}
         onViewChange={setView}
         onLogout={handleLogout}
@@ -1662,23 +1698,29 @@ export default function Home() {
         </section>
       ) : quiz ? (
         quiz.attempt && !result ? (
-          <div className={styles.appBody}>
-            <QuizRail
-              quiz={quiz}
-              selectedCount={9}
-              activePassage={activePassage}
-              onPassageChange={setActivePassage}
-              result={quiz.attempt}
-            />
+          <div className={styles.completedShell}>
             <CompletedView quiz={quiz} />
           </div>
+        ) : activePassage === null ? (
+          <PassagePicker
+            quiz={quiz}
+            onChoose={(index) => {
+              setActivePassage(index);
+              setSelections({});
+              setSubmitError("");
+            }}
+          />
         ) : (
           <div className={styles.appBody}>
             <QuizRail
               quiz={quiz}
               selectedCount={Object.keys(selections).length}
               activePassage={activePassage}
-              onPassageChange={setActivePassage}
+              onChangeArea={() => {
+                setActivePassage(null);
+                setSelections({});
+                setSubmitError("");
+              }}
               result={result}
             />
             <QuizWorkspace
@@ -1686,7 +1728,6 @@ export default function Home() {
               selections={selections}
               onSelect={handleSelect}
               activePassage={activePassage}
-              setActivePassage={setActivePassage}
               result={result}
               onSubmit={handleSubmit}
               submitting={submitting}
