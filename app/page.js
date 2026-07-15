@@ -492,18 +492,86 @@ function QuizWorkspace({
 }
 
 function CompletedView({ quiz }) {
+  const totalQuestions = quiz.attempt.totalQuestions || 3;
+  const completedPassages = quiz.attempt.passageId
+    ? quiz.passages.filter((passage) => passage.passageId === quiz.attempt.passageId)
+    : quiz.passages;
+  const perfect = quiz.attempt.score === totalQuestions;
+
   return (
     <section className={styles.completedView}>
-      <div className={styles.completedIcon}>
-        <Rocket size={29} />
+      <header className={styles.completedSummary}>
+        <div className={styles.completedIcon}>
+          <CheckCircle2 size={28} />
+        </div>
+        <div className={styles.completedSummaryText}>
+          <p className={styles.eyebrow}>TODAY COMPLETE</p>
+          <h1>{totalQuestions > 3 ? "오늘 학습을 끝냈어요" : "오늘도 한 편 읽어냈어요"}</h1>
+          <p>
+            {totalQuestions > 3
+              ? `기존 ${totalQuestions}문제 기록이에요. 오늘 읽은 글을 아래에서 다시 살펴볼 수 있어요.`
+              : perfect
+                ? "세 문제를 모두 맞혔어요. 읽었던 글은 언제든 아래에서 다시 볼 수 있어요."
+                : "수고했어요. 읽었던 글을 한 번 더 훑어보면 놓친 부분이 더 선명해질 거예요."}
+          </p>
+        </div>
+        <div className={styles.completedScore} aria-label={`${quiz.attempt.score}점, 총 ${totalQuestions}문제`}>
+          <strong>{quiz.attempt.score}</strong>
+          <span>/ {totalQuestions}</span>
+        </div>
+      </header>
+
+      <div className={styles.completedReadingList}>
+        <div className={styles.completedReadingHeading}>
+          <div>
+            <p className={styles.eyebrow}>TODAY'S READING</p>
+            <h2>오늘 읽은 글</h2>
+          </div>
+          <span>{completedPassages.length}개 지문</span>
+        </div>
+
+        {completedPassages.map((passage) => {
+          const area = PASSAGE_AREAS[(passage.position || 1) - 1] || PASSAGE_AREAS[0];
+          return (
+            <article className={styles.completedReading} key={passage.passageId}>
+              <header>
+                <div>
+                  <small>{area.label}</small>
+                  <h3>{passage.title}</h3>
+                </div>
+                <span>{passage.topic}</span>
+              </header>
+
+              <p className={styles.completedPassageText}>{passage.content}</p>
+
+              <details className={styles.completedQuestions}>
+                <summary>
+                  <span>
+                    <NotebookPen size={17} />
+                    오늘 문제 {passage.questions.length}개 다시 보기
+                  </span>
+                  <ChevronRight size={17} />
+                </summary>
+                <ol>
+                  {passage.questions.map((question) => (
+                    <li key={question.questionId}>
+                      <strong>{question.content}</strong>
+                      <ul>
+                        {question.options.map((option, optionIndex) => (
+                          <li key={option.optionId}>
+                            <span>{optionIndex + 1}</span>
+                            {option.content}
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </article>
+          );
+        })}
       </div>
-      <p className={styles.eyebrow}>TODAY COMPLETE</p>
-      <h1>오늘의 학습을 마쳤어요</h1>
-      <div className={styles.completedScore}>
-        <strong>{quiz.attempt.score}</strong>
-        <span>/ {quiz.attempt.totalQuestions || 3}</span>
-      </div>
-      <p>한 지문 3문제의 기록이 저장됐어요. 내일 다른 영역을 골라도 좋아요.</p>
     </section>
   );
 }
