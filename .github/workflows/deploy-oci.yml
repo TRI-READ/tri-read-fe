@@ -1,13 +1,9 @@
 name: Deploy frontend to OCI
 
 on:
-  workflow_run:
-    workflows:
-      - Frontend CI
+  push:
     branches:
       - dev
-    types:
-      - completed
   workflow_dispatch:
 
 concurrency:
@@ -19,18 +15,14 @@ permissions:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
-      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       OCI_HOST: ${{ secrets.OCI_HOST }}
       OCI_USER: ${{ secrets.OCI_USER }}
 
     steps:
-      - name: Checkout tested revision
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
