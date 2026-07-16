@@ -264,8 +264,17 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
   );
 }
 
-function WeekOrbit({ completed }) {
-  const currentDay = new Date().getDay() - 1;
+function WeekOrbit({ days = [] }) {
+  const completedDates = new Set(
+    days.filter((day) => day.score !== null).map((day) => day.date),
+  );
+  const orbitDates = new Map(days.map((day, index) => [index, day.date]));
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   return (
     <div className={styles.railOrbit}>
@@ -275,11 +284,17 @@ function WeekOrbit({ completed }) {
       </div>
       <div className={styles.railDays}>
         {WEEKDAYS.map((day, index) => {
-          const isToday = index === currentDay;
+          const date = orbitDates.get(index);
+          const isToday = date === today;
+          const isCompleted = completedDates.has(date);
           return (
-            <span key={day} className={isToday ? styles.railDayToday : styles.railDay}>
-              <i className={isToday && completed ? styles.dayComplete : ""}>
-                {isToday && completed && <Check size={13} />}
+            <span
+              key={day}
+              className={isToday ? styles.railDayToday : styles.railDay}
+              title={`${day}요일 ${isCompleted ? "학습 완료" : "미완료"}`}
+            >
+              <i className={isCompleted ? styles.dayComplete : ""}>
+                {isCompleted && <Check size={13} />}
               </i>
               {day}
             </span>
@@ -324,7 +339,7 @@ function PassagePicker({ quiz, onChoose }) {
   );
 }
 
-function QuizRail({ quiz, selectedCount, activePassage, onChangeArea, result }) {
+function QuizRail({ quiz, selectedCount, activePassage, onChangeArea, result, weekOrbit }) {
   const passage = quiz.passages[activePassage];
   const area = PASSAGE_AREAS[activePassage] || PASSAGE_AREAS[0];
   return (
@@ -356,7 +371,7 @@ function QuizRail({ quiz, selectedCount, activePassage, onChangeArea, result }) 
         )}
       </div>
 
-      <WeekOrbit completed={Boolean(result || quiz.attempt)} />
+      <WeekOrbit days={weekOrbit?.days} />
     </aside>
   );
 }
@@ -1362,6 +1377,7 @@ export default function Home() {
   const [selections, setSelections] = useState({});
   const [result, setResult] = useState(null);
   const [streak, setStreak] = useState({ currentStreak: 0, completedToday: false });
+  const [weekOrbit, setWeekOrbit] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -1412,6 +1428,14 @@ export default function Home() {
       setStreak(await apiFetch("/api/orbit/streak"));
     } catch {
       setStreak({ currentStreak: 0, completedToday: false });
+    }
+  }
+
+  async function loadWeekOrbit() {
+    try {
+      setWeekOrbit(await apiFetch("/api/orbit?period=WEEK"));
+    } catch {
+      setWeekOrbit(null);
     }
   }
 
@@ -1619,7 +1643,7 @@ export default function Home() {
       try {
         const currentUser = await apiFetch("/api/auth/me");
         setUser(currentUser);
-        await Promise.all([loadQuiz(), loadStreak()]);
+        await Promise.all([loadQuiz(), loadStreak(), loadWeekOrbit()]);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) {
           setBootError("백엔드 서버 연결을 확인해 주세요.");
@@ -1635,7 +1659,7 @@ export default function Home() {
     setUser(authenticatedUser);
     setBootError("");
     setView("quiz");
-    await Promise.all([loadQuiz(), loadStreak()]);
+    await Promise.all([loadQuiz(), loadStreak(), loadWeekOrbit()]);
   }
 
   async function handleLogout() {
@@ -1650,6 +1674,7 @@ export default function Home() {
       setSelections({});
       setActivePassage(null);
       setStreak({ currentStreak: 0, completedToday: false });
+      setWeekOrbit(null);
       setView("quiz");
       setGroups([]);
       setSelectedGroup(null);
@@ -1688,7 +1713,7 @@ export default function Home() {
         body: JSON.stringify({ answers }),
       });
       setResult(quizResult);
-      await loadStreak();
+      await Promise.all([loadStreak(), loadWeekOrbit()]);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setSubmitError(getErrorMessage(error));
@@ -1799,6 +1824,7 @@ export default function Home() {
                 setSubmitError("");
               }}
               result={result}
+              weekOrbit={weekOrbit}
             />
             <QuizWorkspace
               quiz={quiz}
