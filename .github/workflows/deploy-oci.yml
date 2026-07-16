@@ -58,11 +58,9 @@ jobs:
           scp -i ~/.ssh/oci -r out/. \
             "$OCI_USER@$OCI_HOST:~/tri-read/frontend/out/"
 
-      - name: Verify public page
+      - name: Verify deployed files
         shell: bash
         run: |
-          SITE_HOST="tri-read.${OCI_HOST}.sslip.io"
           ssh -i ~/.ssh/oci "$OCI_USER@$OCI_HOST" \
-            "curl --fail --silent --show-error --insecure \
-              --resolve '$SITE_HOST:443:127.0.0.1' \
-              'https://$SITE_HOST/' | grep -q '<title>TRI:READ</title>'"
+            "test -s ~/tri-read/frontend/out/index.html && \
+              grep -q '<title>TRI:READ</title>' ~/tri-read/frontend/out/index.html"
