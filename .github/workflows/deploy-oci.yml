@@ -1,0 +1,71 @@
+name: Deploy frontend to OCI
+
+on:
+  workflow_run:
+    workflows:
+      - Frontend CI
+    branches:
+      - dev
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend-oci-dev
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ secrets.OCI_USER }}
+
+    steps:
+      - name: Checkout tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Build static frontend
+        env:
+          STATIC_EXPORT: 'true'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$OCI_HOST"
+          test -n "$OCI_USER"
+          test -n "$OCI_SSH_PRIVATE_KEY"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > ~/.ssh/oci
+          chmod 600 ~/.ssh/oci
+          ssh-keyscan -H "$OCI_HOST" >> ~/.ssh/known_hosts
+
+      - name: Replace deployed frontend
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/oci "$OCI_USER@$OCI_HOST" \
+            'mkdir -p ~/tri-read/frontend/out && find ~/tri-read/frontend/out -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +'
+          scp -i ~/.ssh/oci -r out/. \
+            "$OCI_USER@$OCI_HOST:~/tri-read/frontend/out/"
+
+      - name: Verify public page
+        shell: bash
+        run: curl --fail --retry 5 --retry-delay 3 "https://tri-read.${OCI_HOST}.sslip.io/"
