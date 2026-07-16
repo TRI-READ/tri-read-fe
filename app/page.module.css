@@ -2060,6 +2060,71 @@
   color: #0e766e;
 }
 
+.reviewPassage {
+  margin-top: 24px;
+  border: 1px solid #d9e3e0;
+  border-radius: 7px;
+  background: #f8fbfa;
+}
+
+.reviewPassage summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 16px 18px;
+  color: #26373e;
+  cursor: pointer;
+  list-style: none;
+}
+
+.reviewPassage summary::-webkit-details-marker {
+  display: none;
+}
+
+.reviewPassage summary > span {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.reviewPassage summary > small {
+  grid-column: 1;
+  color: #748286;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.reviewPassage summary > svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: #0e766e;
+  transition: transform 160ms ease;
+}
+
+.reviewPassage[open] summary > svg {
+  transform: rotate(90deg);
+}
+
+.reviewPassage > div {
+  max-height: 480px;
+  overflow-y: auto;
+  padding: 20px 22px 22px;
+  border-top: 1px solid #e0e8e5;
+  background: #ffffff;
+}
+
+.reviewPassage p {
+  margin: 0 0 14px;
+  color: #35484f;
+  font-size: 15px;
+  line-height: 1.95;
+  white-space: pre-wrap;
+}
+
+.reviewPassage p:last-child {
+  margin-bottom: 0;
+}
+
 .reviewQuestion {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -2928,6 +2993,20 @@
 
   .reviewDetailHeader {
     flex-direction: column;
+  }
+
+  .reviewPassage summary {
+    padding: 14px 15px;
+  }
+
+  .reviewPassage > div {
+    max-height: none;
+    padding: 16px;
+  }
+
+  .reviewPassage p {
+    font-size: 14px;
+    line-height: 1.85;
   }
 
   .reviewQuestion {

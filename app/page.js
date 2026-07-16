@@ -1022,6 +1022,24 @@ function ReviewHub({
               </span>
             </header>
 
+            {selectedReview.passageContent && (
+              <details className={styles.reviewPassage} open>
+                <summary>
+                  <span>지문 다시 보기</span>
+                  <small>문제의 근거를 본문에서 다시 확인해 보세요.</small>
+                  <ChevronRight size={18} aria-hidden="true" />
+                </summary>
+                <div>
+                  {selectedReview.passageContent
+                    .split(/\n+/)
+                    .filter(Boolean)
+                    .map((paragraph, index) => (
+                      <p key={`${selectedReview.reviewId}-passage-${index}`}>{paragraph}</p>
+                    ))}
+                </div>
+              </details>
+            )}
+
             <section className={styles.reviewQuestion}>
               <span>Q{selectedReview.questionPosition}</span>
               <h2>{selectedReview.questionContent}</h2>
