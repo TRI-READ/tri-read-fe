@@ -214,7 +214,7 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
                 onChange={(event) => setLoginName(event.target.value)}
                 minLength={4}
                 maxLength={30}
-                pattern="[A-Za-z0-9._-]+"
+                pattern="[A-Za-z0-9._\\-]+"
                 autoComplete="username"
                 placeholder="reader01"
                 required
