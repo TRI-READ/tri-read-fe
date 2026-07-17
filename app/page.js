@@ -72,7 +72,7 @@ function getErrorMessage(error) {
     LOGIN_NAME_ALREADY_EXISTS: "이미 사용 중인 아이디예요.",
     INVALID_REQUEST: "입력한 내용을 다시 확인해 주세요.",
     TODAY_QUIZ_NOT_FOUND: "오늘은 등록된 퀴즈가 없어요.",
-    QUIZ_ALREADY_COMPLETED: "오늘 퀴즈는 이미 완료했어요.",
+    QUIZ_ALREADY_COMPLETED: "이미 완료한 지문이에요. 다른 영역을 골라 주세요.",
     AUTHENTICATION_REQUIRED: "다시 로그인해 주세요.",
     GROUP_ALREADY_JOINED: "이미 참여 중인 그룹이에요.",
     GROUP_NOT_FOUND: "그룹을 찾을 수 없어요.",
@@ -214,7 +214,7 @@ function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
                 onChange={(event) => setLoginName(event.target.value)}
                 minLength={4}
                 maxLength={30}
-                pattern="[A-Za-z0-9._\\-]+"
+                pattern="[A-Za-z0-9._-]+"
                 autoComplete="username"
                 placeholder="reader01"
                 required
@@ -305,18 +305,70 @@ function WeekOrbit({ days = [] }) {
   );
 }
 
+function getQuizAttempts(quiz) {
+  if (Array.isArray(quiz.attempts) && quiz.attempts.length > 0) {
+    return quiz.attempts;
+  }
+  return quiz.attempt ? [quiz.attempt] : [];
+}
+
 function PassagePicker({ quiz, onChoose }) {
+  const attempts = getQuizAttempts(quiz);
+  const attemptsByPassage = new Map(attempts.map((attempt) => [attempt.passageId, attempt]));
+  const primaryCompleted = attempts.some((attempt) => attempt.attemptType === "PRIMARY") || Boolean(quiz.attempt);
+  const allCompleted = attempts.length === quiz.passages.length;
+
   return (
     <section className={styles.passagePicker}>
       <header className={styles.passagePickerHeader}>
-        <p className={styles.eyebrow}>TODAY'S READING</p>
-        <h1>오늘은 어떤 영역을 읽을까요?</h1>
-        <p>하나를 골라 3문제만 풀어요. 예상 시간은 10~15분입니다.</p>
+        <p className={styles.eyebrow}>{primaryCompleted ? "TODAY COMPLETE" : "TODAY'S READING"}</p>
+        <h1>
+          {allCompleted
+            ? "오늘 준비된 글을 모두 읽었어요"
+            : primaryCompleted
+              ? "오늘 읽기는 여기까지 해도 충분해요"
+              : "오늘은 어떤 영역을 읽을까요?"}
+        </h1>
+        <p>
+          {allCompleted
+            ? "기본 1편과 보너스 2편을 모두 마쳤습니다. 읽은 글은 아래에서 다시 볼 수 있어요."
+            : primaryCompleted
+              ? "기본 학습을 마쳤어요. 더 읽고 싶은 날에는 남은 영역을 보너스로 풀어보세요."
+              : "하나를 골라 3문제만 풀어요. 예상 시간은 10~15분입니다."}
+        </p>
+        {primaryCompleted && (
+          <div className={styles.passageProgress}>
+            <span><CheckCircle2 size={17} /> 오늘 기본 학습 완료</span>
+            <strong>{attempts.length} / {quiz.passages.length} 지문</strong>
+          </div>
+        )}
       </header>
       <div className={styles.passageChoiceGrid}>
         {quiz.passages.map((passage, index) => {
           const area = PASSAGE_AREAS[index] || PASSAGE_AREAS[0];
           const AreaIcon = area.icon;
+          const attempt = attemptsByPassage.get(passage.passageId);
+
+          if (attempt) {
+            return (
+              <article
+                className={`${styles.passageChoice} ${styles.passageChoiceCompleted}`}
+                key={passage.passageId}
+              >
+                <span className={styles.passageChoiceIcon}><Check size={23} /></span>
+                <span className={styles.passageChoiceBody}>
+                  <small>{area.label}</small>
+                  <strong>{passage.title}</strong>
+                  <p>{area.description}</p>
+                </span>
+                <span className={styles.passageChoiceMeta}>
+                  {attempt.attemptType === "PRIMARY" ? "기본 완료" : "보너스 완료"}
+                  <b>{attempt.score} / {attempt.totalQuestions || 3}</b>
+                </span>
+              </article>
+            );
+          }
+
           return (
             <button
               className={styles.passageChoice}
@@ -326,15 +378,19 @@ function PassagePicker({ quiz, onChoose }) {
             >
               <span className={styles.passageChoiceIcon}><AreaIcon size={23} /></span>
               <span className={styles.passageChoiceBody}>
-                <small>{area.label}</small>
+                <small>{area.label}{primaryCompleted ? " · BONUS" : ""}</small>
                 <strong>{passage.title}</strong>
                 <p>{area.description}</p>
               </span>
-              <span className={styles.passageChoiceMeta}>3문제 · 약 15분 <ChevronRight size={16} /></span>
+              <span className={styles.passageChoiceMeta}>
+                {primaryCompleted ? "보너스 3문제" : "3문제 · 약 15분"}
+                <ChevronRight size={16} />
+              </span>
             </button>
           );
         })}
       </div>
+      {attempts.length > 0 && <CompletedView quiz={quiz} attempts={attempts} />}
     </section>
   );
 }
@@ -432,6 +488,7 @@ function QuizWorkspace({
   onSubmit,
   submitting,
   submitError,
+  onContinue,
 }) {
   const passage = quiz.passages[activePassage];
   const resultByQuestion = useMemo(
@@ -450,8 +507,14 @@ function QuizWorkspace({
             <span>/ 3</span>
           </div>
           <div>
-            <p className={styles.eyebrow}>TODAY COMPLETE</p>
-            <h1>{result.score === 3 ? "오늘 학습을 깔끔하게 마쳤어요" : "오답은 짧게 복습해 두세요"}</h1>
+            <p className={styles.eyebrow}>{result.attemptType === "BONUS" ? "BONUS COMPLETE" : "TODAY COMPLETE"}</p>
+            <h1>
+              {result.attemptType === "BONUS"
+                ? "보너스 지문까지 읽어냈어요"
+                : result.score === 3
+                  ? "오늘 학습을 깔끔하게 마쳤어요"
+                  : "오답은 짧게 복습해 두세요"}
+            </h1>
             <span>정답 {result.score}개 · 복습 {result.wrongCount}개</span>
           </div>
         </header>
@@ -505,46 +568,22 @@ function QuizWorkspace({
             {!submitting && <Send size={17} />}
           </button>
         ) : (
-          <span className={styles.completeLabel}>
-            <CheckCircle2 size={18} />
-            오늘 완료
-          </span>
+          <button className={styles.secondaryButton} type="button" onClick={onContinue}>
+            <ArrowLeft size={17} />
+            다른 지문 보기
+          </button>
         )}
       </footer>
     </section>
   );
 }
 
-function CompletedView({ quiz }) {
-  const totalQuestions = quiz.attempt.totalQuestions || 3;
-  const completedPassages = quiz.attempt.passageId
-    ? quiz.passages.filter((passage) => passage.passageId === quiz.attempt.passageId)
-    : quiz.passages;
-  const perfect = quiz.attempt.score === totalQuestions;
+function CompletedView({ quiz, attempts = getQuizAttempts(quiz) }) {
+  const attemptsByPassage = new Map(attempts.map((attempt) => [attempt.passageId, attempt]));
+  const completedPassages = quiz.passages.filter((passage) => attemptsByPassage.has(passage.passageId));
 
   return (
     <section className={styles.completedView}>
-      <header className={styles.completedSummary}>
-        <div className={styles.completedIcon}>
-          <CheckCircle2 size={28} />
-        </div>
-        <div className={styles.completedSummaryText}>
-          <p className={styles.eyebrow}>TODAY COMPLETE</p>
-          <h1>{totalQuestions > 3 ? "오늘 학습을 끝냈어요" : "오늘도 한 편 읽어냈어요"}</h1>
-          <p>
-            {totalQuestions > 3
-              ? `기존 ${totalQuestions}문제 기록이에요. 오늘 읽은 글을 아래에서 다시 살펴볼 수 있어요.`
-              : perfect
-                ? "세 문제를 모두 맞혔어요. 읽었던 글은 언제든 아래에서 다시 볼 수 있어요."
-                : "수고했어요. 읽었던 글을 한 번 더 훑어보면 놓친 부분이 더 선명해질 거예요."}
-          </p>
-        </div>
-        <div className={styles.completedScore} aria-label={`${quiz.attempt.score}점, 총 ${totalQuestions}문제`}>
-          <strong>{quiz.attempt.score}</strong>
-          <span>/ {totalQuestions}</span>
-        </div>
-      </header>
-
       <div className={styles.completedReadingList}>
         <div className={styles.completedReadingHeading}>
           <div>
@@ -556,15 +595,19 @@ function CompletedView({ quiz }) {
 
         {completedPassages.map((passage) => {
           const area = PASSAGE_AREAS[(passage.position || 1) - 1] || PASSAGE_AREAS[0];
+          const attempt = attemptsByPassage.get(passage.passageId);
           return (
-            <article className={styles.completedReading} key={passage.passageId}>
-              <header>
+            <details className={styles.completedReading} key={passage.passageId}>
+              <summary>
                 <div>
                   <small>{area.label}</small>
                   <h3>{passage.title}</h3>
                 </div>
-                <span>{passage.topic}</span>
-              </header>
+                <span className={styles.completedReadingScore}>
+                  {attempt.attemptType === "PRIMARY" ? "기본" : "보너스"} · {attempt.score}/{attempt.totalQuestions || 3}
+                  <ChevronRight size={18} />
+                </span>
+              </summary>
 
               <p className={styles.completedPassageText}>{passage.content}</p>
 
@@ -592,7 +635,7 @@ function CompletedView({ quiz }) {
                   ))}
                 </ol>
               </details>
-            </article>
+            </details>
           );
         })}
       </div>
@@ -1817,11 +1860,7 @@ export default function Home() {
           오늘의 지문을 불러오는 중...
         </section>
       ) : quiz ? (
-        quiz.attempt && !result ? (
-          <div className={styles.completedShell}>
-            <CompletedView quiz={quiz} />
-          </div>
-        ) : activePassage === null ? (
+        activePassage === null ? (
           <PassagePicker
             quiz={quiz}
             onChoose={(index) => {
@@ -1853,6 +1892,7 @@ export default function Home() {
               onSubmit={handleSubmit}
               submitting={submitting}
               submitError={submitError}
+              onContinue={loadQuiz}
             />
           </div>
         )

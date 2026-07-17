@@ -498,6 +498,32 @@
   font-size: 14px;
 }
 
+.passageProgress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 13px 15px;
+  border: 1px solid #cfe0dc;
+  border-radius: 7px;
+  background: #f1f8f5;
+  color: #31524e;
+  font-size: 12px;
+}
+
+.passageProgress span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 850;
+}
+
+.passageProgress svg,
+.passageProgress strong {
+  color: #0e766e;
+}
+
 .passageChoiceGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -522,6 +548,30 @@
   border-color: #78aaa2;
   box-shadow: 0 10px 24px rgba(27, 61, 58, 0.09);
   transform: translateY(-2px);
+}
+
+.passageChoiceCompleted {
+  border-color: #c9d9d5;
+  background: #f5f9f7;
+}
+
+.passageChoiceCompleted:hover {
+  border-color: #c9d9d5;
+  box-shadow: none;
+  transform: none;
+}
+
+.passageChoiceCompleted .passageChoiceIcon {
+  background: #0e766e;
+  color: #ffffff;
+}
+
+.passageChoiceCompleted .passageChoiceMeta {
+  color: #0e766e;
+}
+
+.passageChoiceMeta b {
+  font-size: 12px;
 }
 
 .passageChoiceIcon {
@@ -1144,9 +1194,9 @@
 }
 
 .completedView {
-  width: min(calc(100% - 48px), 980px);
+  width: 100%;
   margin: 0 auto;
-  padding: 52px 0 96px;
+  padding: 0 0 24px;
 }
 
 .completedSummary {
@@ -1213,7 +1263,7 @@
 .completedReadingList {
   display: grid;
   gap: 18px;
-  margin-top: 42px;
+  margin-top: 52px;
 }
 
 .completedReadingHeading {
@@ -1243,29 +1293,36 @@
   background: #ffffff;
 }
 
-.completedReading > header {
+.completedReading > summary {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e7ecea;
+  cursor: pointer;
+  list-style: none;
 }
 
-.completedReading > header small {
+.completedReading > summary::-webkit-details-marker {
+  display: none;
+}
+
+.completedReading > summary small {
   color: #0e766e;
   font-size: 11px;
   font-weight: 900;
 }
 
-.completedReading > header h3 {
+.completedReading > summary h3 {
   margin: 7px 0 0;
   color: #1f3036;
   font-size: 21px;
   line-height: 1.4;
 }
 
-.completedReading > header > span {
+.completedReadingScore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: 0 0 auto;
   padding: 6px 9px;
   border-radius: 6px;
@@ -1275,9 +1332,18 @@
   font-weight: 800;
 }
 
+.completedReadingScore svg {
+  transition: transform 160ms ease;
+}
+
+.completedReading[open] > summary .completedReadingScore svg {
+  transform: rotate(90deg);
+}
+
 .completedPassageText {
   margin: 0;
   padding: 28px 0;
+  border-top: 1px solid #e7ecea;
   color: #33454b;
   font-size: 15px;
   line-height: 2;
@@ -2539,7 +2605,6 @@
     font-size: 18px;
   }
 
-  .completedView,
   .emptyQuiz,
   .quizLoading {
     min-height: calc(100vh - 66px - 182px);
@@ -2548,6 +2613,7 @@
 
   .completedView {
     width: 100%;
+    padding: 0 0 20px;
   }
 
   .completedSummary {
@@ -2568,7 +2634,7 @@
     padding: 24px 20px;
   }
 
-  .completedReading > header {
+  .completedReading > summary {
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
