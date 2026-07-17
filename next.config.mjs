@@ -4,7 +4,7 @@ const staticExport = process.env.STATIC_EXPORT === "true";
 const nextConfig = {
   reactStrictMode: true,
   ...(staticExport
-    ? { output: "export" }
+    ? { output: "export", trailingSlash: true }
     : {
         async rewrites() {
           return [
