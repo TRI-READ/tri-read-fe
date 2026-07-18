@@ -25,6 +25,7 @@ import {
   Rocket,
   Scale,
   Send,
+  ShieldCheck,
   Sparkles,
   UserPlus,
   UsersRound,
@@ -100,6 +101,18 @@ function getErrorMessage(error) {
     ANSWER_REVIEW_NOT_FOUND: "오답 기록을 찾을 수 없어요.",
     INVALID_REVIEW_FILTER: "오답 필터를 다시 확인해 주세요.",
     INVALID_REVIEW_STATUS: "복습 상태를 변경하지 못했어요.",
+    INVALID_APP_ROLE: "사용자 권한을 다시 확인해 주세요.",
+    CANNOT_DEMOTE_SELF: "현재 로그인한 관리자는 직접 권한을 내릴 수 없어요.",
+    LAST_ADMIN_REQUIRED: "관리자는 최소 한 명 필요해요.",
+    USER_NOT_FOUND: "사용자를 찾을 수 없어요.",
+    APP_ROLE_UPDATE_FAILED: "사용자 권한을 변경하지 못했어요.",
+    QUIZ_DATE_INVENTORY_FULL: "선택한 날짜에는 이미 퀴즈 3세트가 준비되어 있어요.",
+    GENERATION_LOG_NOT_FOUND: "생성 기록을 찾을 수 없어요.",
+    GENERATION_RETRY_NOT_ALLOWED: "실패한 생성 기록만 다시 실행할 수 있어요.",
+    QUIZ_GENERATION_FAILED: "자동 생성이 검증을 통과하지 못했어요. 기록에서 원인을 확인해 주세요.",
+    GEMINI_API_KEY_MISSING: "서버에 Gemini API 키가 설정되어 있지 않아요.",
+    GEMINI_RATE_LIMITED: "Gemini 호출 한도에 도달했어요. 잠시 뒤 다시 시도해 주세요.",
+    GEMINI_UNAVAILABLE: "Gemini가 일시적으로 응답하지 않아요.",
   };
   return messages[error.code] || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
 }
@@ -1258,11 +1271,17 @@ function blankAdminQuiz() {
   };
 }
 
-function AdminQuizHub({ quizzes, loading, error, onCreate, onUpdate, onDelete, onLoad, onPublish }) {
+function AdminQuizHub({
+  currentUser, quizzes, generationLogs, generationDetail, users, loading, actionLoading, error,
+  onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
+  onLoadGeneration, onUpdateRole, onRefresh,
+}) {
+  const [section, setSection] = useState("operations");
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [generationDate, setGenerationDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   function updatePassage(field, value) {
     setDraft((current) => ({ ...current, passages: current.passages.map((p, i) => i === activePassage ? { ...p, [field]: value } : p) }));
@@ -1293,30 +1312,122 @@ function AdminQuizHub({ quizzes, loading, error, onCreate, onUpdate, onDelete, o
         explanation: q.explanation, evidence: q.evidence || "" })),
     })) });
     setActivePassage(0);
+    setSection("editor");
   }
   async function deleteQuiz(quizSetId) {
     if (!window.confirm("이 DRAFT를 삭제할까요?")) return;
     await onDelete(quizSetId); if (editingId === quizSetId) resetEditor();
   }
 
+  async function generateQuiz() {
+    await onGenerate(generationDate);
+  }
+
+  function statusForGeneration(log) {
+    const linkedQuiz = quizzes.find((quiz) => quiz.quizSetId === log.quizSetId);
+    return linkedQuiz?.status === "PUBLISHED" ? "PUBLISHED" : log.status;
+  }
+
+  const sectionItems = [
+    ["operations", Sparkles, "생성 운영"],
+    ["editor", NotebookPen, "수동 편집"],
+    ["access", ShieldCheck, "권한 관리"],
+  ];
+
   return (
     <section className={styles.adminHub}>
       <aside className={styles.adminRail}>
-        <div className={styles.adminRailHeading}><span>QUIZ STUDIO</span><h2>퀴즈 관리</h2></div>
-        <button className={styles.adminNewButton} type="button" onClick={resetEditor}><Plus size={15} /> 새 퀴즈</button>
-        <div className={styles.adminQuizList}>
-          {quizzes.map((quiz) => (
-            <article key={quiz.quizSetId}>
-              <div><strong>{quiz.challengeDate}</strong><small>{quiz.status}</small></div>
-              {quiz.status !== "PUBLISHED" && <div className={styles.adminListActions}>
-                <button type="button" onClick={() => editQuiz(quiz.quizSetId)}>수정</button>
-                <button type="button" onClick={() => onPublish(quiz.quizSetId)}>발행</button>
-                <button type="button" onClick={() => deleteQuiz(quiz.quizSetId)} aria-label={`${quiz.challengeDate} 초안 삭제`} title="초안 삭제"><X size={14} /></button>
-              </div>}
-            </article>
+        <div className={styles.adminRailHeading}><span>ADMIN CONSOLE</span><h2>운영 관리</h2></div>
+        <nav className={styles.adminSectionNav} aria-label="관리자 메뉴">
+          {sectionItems.map(([value, Icon, label]) => (
+            <button key={value} type="button" className={section === value ? styles.adminSectionActive : ""} onClick={() => setSection(value)}>
+              <Icon size={16} /> {label}
+            </button>
           ))}
-        </div>
+        </nav>
+        {section === "editor" && <>
+          <button className={styles.adminNewButton} type="button" onClick={() => { resetEditor(); setSection("editor"); }}><Plus size={15} /> 새 퀴즈</button>
+          <div className={styles.adminQuizList}>
+            {quizzes.map((quiz) => (
+              <article key={quiz.quizSetId}>
+                <div><strong>{quiz.challengeDate}</strong><small>{quiz.status} · #{quiz.quizSetId}</small></div>
+                {quiz.status !== "PUBLISHED" && <div className={styles.adminListActions}>
+                  <button type="button" onClick={() => editQuiz(quiz.quizSetId)}>수정</button>
+                  <button type="button" onClick={() => onPublish(quiz.quizSetId)}>발행</button>
+                  <button type="button" onClick={() => deleteQuiz(quiz.quizSetId)} aria-label={`${quiz.challengeDate} 초안 삭제`} title="초안 삭제"><X size={14} /></button>
+                </div>}
+              </article>
+            ))}
+          </div>
+        </>}
+        <button className={styles.adminRefreshButton} type="button" onClick={onRefresh} disabled={loading}>
+          <RefreshCw size={15} /> {loading ? "갱신 중" : "전체 새로고침"}
+        </button>
       </aside>
+
+      {section === "operations" ? (
+        <div className={styles.adminWorkspace}>
+          <header className={styles.adminEditorHeader}>
+            <div><span>AI PIPELINE</span><h1>퀴즈 생성 운영</h1><p>Gemini 생성, 자동 검증, 편집과 발행 상태를 확인합니다.</p></div>
+            <div className={styles.adminGenerateControls}>
+              <label>대상 날짜<input type="date" value={generationDate} onChange={(event) => setGenerationDate(event.target.value)} /></label>
+              <button className={styles.primaryButton} type="button" onClick={generateQuiz} disabled={Boolean(actionLoading)}><Sparkles size={16} /> {actionLoading === "generate" ? "생성 중..." : "Gemini로 생성"}</button>
+            </div>
+          </header>
+          {error && <div className={styles.adminError}>{error}</div>}
+          <div className={styles.adminMetrics}>
+            <div><span>발행 대기</span><strong>{quizzes.filter((quiz) => quiz.status === "REVIEWED" || quiz.status === "DRAFT").length}</strong></div>
+            <div><span>생성 성공</span><strong>{generationLogs.filter((log) => log.status === "READY" || log.status === "PUBLISHED").length}</strong></div>
+            <div><span>생성 실패</span><strong>{generationLogs.filter((log) => log.status === "FAILED").length}</strong></div>
+          </div>
+          <section className={styles.adminLogSection}>
+            <div className={styles.adminSectionHeading}><div><span>최근 100건</span><h2>생성 기록</h2></div></div>
+            {generationLogs.length ? <div className={styles.adminLogList}>
+              {generationLogs.map((log) => {
+                const displayStatus = statusForGeneration(log);
+                return <article key={log.generationLogId} className={generationDetail?.log?.generationLogId === log.generationLogId ? styles.adminLogSelected : ""}>
+                  <button className={styles.adminLogMain} type="button" onClick={() => onLoadGeneration(log.generationLogId)}>
+                    <span className={`${styles.adminStatus} ${styles[`adminStatus${displayStatus}`] || ""}`}>{displayStatus}</span>
+                    <strong>{log.targetDate}</strong>
+                    <small>{log.aiModel} · {log.attemptCount}회 시도</small>
+                    <b>{log.validationScore == null ? "-" : `${log.validationScore}점`}</b>
+                  </button>
+                  <div className={styles.adminLogActions}>
+                    {log.quizSetId && displayStatus !== "PUBLISHED" && <button type="button" onClick={() => editQuiz(log.quizSetId)}>편집</button>}
+                    {log.quizSetId && displayStatus !== "PUBLISHED" && <button type="button" onClick={() => onPublish(log.quizSetId)}>발행</button>}
+                    {log.status === "FAILED" && <button type="button" onClick={() => onRetry(log.generationLogId)} disabled={actionLoading === `retry-${log.generationLogId}`}><RefreshCw size={14} /> 재시도</button>}
+                  </div>
+                </article>;
+              })}
+            </div> : <div className={styles.adminEmpty}>아직 생성 기록이 없습니다.</div>}
+          </section>
+          {generationDetail && <section className={styles.adminValidationPanel}>
+            <header><div><span>GENERATION #{generationDetail.log.generationLogId}</span><h2>검증 상세</h2></div><button type="button" onClick={() => onLoadGeneration(null)} aria-label="검증 상세 닫기" title="닫기"><X size={17} /></button></header>
+            {generationDetail.log.errorMessage && <p className={styles.adminFailureReason}>{generationDetail.log.errorMessage}</p>}
+            <div className={styles.adminValidationList}>
+              {generationDetail.validations.map((validation) => <article key={validation.validationResultId}>
+                <div><strong>{validation.validationType}</strong><span>{validation.attemptNumber}차 · {validation.score}점 · {validation.passed ? "통과" : "실패"}</span></div>
+                {validation.issues.length ? <ul>{validation.issues.map((issue, index) => <li key={`${issue.code}-${index}`}><b>{issue.severity}</b> {issue.message}</li>)}</ul> : <p>발견된 문제가 없습니다.</p>}
+              </article>)}
+            </div>
+          </section>}
+        </div>
+      ) : section === "access" ? (
+        <div className={styles.adminWorkspace}>
+          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>관리자 권한 변경은 다음 로그인부터 세션에 반영됩니다.</p></div></header>
+          {error && <div className={styles.adminError}>{error}</div>}
+          <div className={styles.adminUserTable}>
+            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span></div>
+            {users.map((account) => <article key={account.userId}>
+              <div><strong>{account.displayName}</strong><small>@{account.loginName}{account.userId === currentUser.userId ? " · 현재 계정" : ""}</small></div>
+              <time>{account.lastLoginAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(account.lastLoginAt)) : "로그인 기록 없음"}</time>
+              <select value={account.role} disabled={!account.enabled || actionLoading === `role-${account.userId}` || account.userId === currentUser.userId} onChange={(event) => onUpdateRole(account.userId, event.target.value)} aria-label={`${account.displayName} 권한`}>
+                <option value="USER">사용자</option><option value="ADMIN">관리자</option>
+              </select>
+            </article>)}
+          </div>
+        </div>
+      ) : (
       <form className={styles.adminEditor} onSubmit={submit}>
         <header className={styles.adminEditorHeader}>
           <div><span>MANUAL DRAFT</span><h1>{editingId ? `DRAFT #${editingId} 수정` : "새 퀴즈 만들기"}</h1><p>고3 난이도 · 3지문 · 9문제</p></div>
@@ -1346,6 +1457,7 @@ function AdminQuizHub({ quizzes, loading, error, onCreate, onUpdate, onDelete, o
         </div>
         <footer className={styles.adminFooter}><span>{loading ? "목록 갱신 중" : editingId ? "발행 전 DRAFT만 수정할 수 있습니다." : "모든 지문 입력 후 초안으로 저장됩니다."}</span><button className={styles.primaryButton} type="submit" disabled={saving}>{saving ? "저장 중..." : editingId ? "수정 저장" : "DRAFT 저장"}</button></footer>
       </form>
+      )}
     </section>
   );
 }
@@ -1480,7 +1592,11 @@ export default function TriReadApp() {
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitError, setOrbitError] = useState("");
   const [adminQuizzes, setAdminQuizzes] = useState([]);
+  const [adminGenerationLogs, setAdminGenerationLogs] = useState([]);
+  const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
+  const [adminUsers, setAdminUsers] = useState([]);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
 
   async function loadQuiz() {
@@ -1676,6 +1792,52 @@ export default function TriReadApp() {
     catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function loadAdminConsole() {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const [quizzes, logs, accounts] = await Promise.all([
+        apiFetch("/api/admin/quizzes"),
+        apiFetch("/api/admin/quiz-generations"),
+        apiFetch("/api/admin/users"),
+      ]);
+      setAdminQuizzes(quizzes);
+      setAdminGenerationLogs(logs);
+      setAdminUsers(accounts);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function generateAdminQuiz(targetDate) {
+    setAdminActionLoading("generate"); setAdminError("");
+    try {
+      const result = await apiFetch("/api/admin/quiz-generations", { method: "POST", body: JSON.stringify({ targetDate }) });
+      await loadAdminConsole();
+      await loadAdminGeneration(result.generationLogId);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
+  async function retryAdminGeneration(generationLogId) {
+    setAdminActionLoading(`retry-${generationLogId}`); setAdminError("");
+    try {
+      const result = await apiFetch(`/api/admin/quiz-generations/${generationLogId}/retry`, { method: "POST" });
+      await loadAdminConsole();
+      await loadAdminGeneration(result.generationLogId);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
+  async function loadAdminGeneration(generationLogId) {
+    if (!generationLogId) { setAdminGenerationDetail(null); return; }
+    setAdminError("");
+    try { setAdminGenerationDetail(await apiFetch(`/api/admin/quiz-generations/${generationLogId}`)); }
+    catch (error) { setAdminError(getErrorMessage(error)); }
+  }
+  async function updateAdminRole(userId, role) {
+    setAdminActionLoading(`role-${userId}`); setAdminError("");
+    try {
+      const updated = await apiFetch(`/api/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+      setAdminUsers((current) => current.map((account) => account.userId === userId ? updated : account));
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
   async function createAdminQuiz(draft) {
     setAdminError("");
     try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(); }
@@ -1712,7 +1874,7 @@ export default function TriReadApp() {
     if (user && view === "orbit") {
       loadOrbit(orbitPeriod, orbitAnchor);
     }
-    if (user?.role === "ADMIN" && view === "admin") loadAdminQuizzes();
+    if (user?.role === "ADMIN" && view === "admin") loadAdminConsole();
   }, [user, view]);
 
   useEffect(() => {
@@ -1866,7 +2028,26 @@ export default function TriReadApp() {
           onReload={() => loadOrbit(orbitPeriod, orbitAnchor)}
         />
       ) : view === "admin" && user.role === "ADMIN" ? (
-        <AdminQuizHub quizzes={adminQuizzes} loading={adminLoading} error={adminError} onCreate={createAdminQuiz} onUpdate={updateAdminQuiz} onDelete={deleteAdminQuiz} onLoad={loadAdminQuiz} onPublish={publishAdminQuiz} />
+        <AdminQuizHub
+          currentUser={user}
+          quizzes={adminQuizzes}
+          generationLogs={adminGenerationLogs}
+          generationDetail={adminGenerationDetail}
+          users={adminUsers}
+          loading={adminLoading}
+          actionLoading={adminActionLoading}
+          error={adminError}
+          onCreate={createAdminQuiz}
+          onUpdate={updateAdminQuiz}
+          onDelete={deleteAdminQuiz}
+          onLoad={loadAdminQuiz}
+          onPublish={publishAdminQuiz}
+          onGenerate={generateAdminQuiz}
+          onRetry={retryAdminGeneration}
+          onLoadGeneration={loadAdminGeneration}
+          onUpdateRole={updateAdminRole}
+          onRefresh={loadAdminConsole}
+        />
       ) : view === "reviews" ? (
         <ReviewHub
           reviewData={reviewData}

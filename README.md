@@ -22,10 +22,12 @@ TypeScript, Tailwind CSS, Bootstrap은 사용하지 않습니다.
 /groups         학습 그룹
 /history        주간/월간 학습 기록
 /wrong-answers  오답노트
-/admin          관리자 퀴즈 관리
+/admin          AI 생성 운영, 퀴즈 편집과 사용자 권한 관리
 ```
 
 각 메뉴는 Next.js App Router의 실제 URL을 사용합니다. 따라서 브라우저 뒤로가기, 새로고침과 링크 공유가 정상 동작합니다.
+
+관리자 화면에서는 Gemini 생성 기록과 검증 사유를 확인하고, 실패 작업 재시도, 생성 초안 편집·발행, 사용자 관리자 권한 변경을 한곳에서 처리합니다.
 
 ## 현재 학습 흐름
 

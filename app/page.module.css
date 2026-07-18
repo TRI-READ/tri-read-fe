@@ -2953,6 +2953,11 @@
 .adminRail { padding: 28px 20px; border-right: 1px solid #d9e0de; background: #16242b; color: #edf5f2; }
 .adminRailHeading span, .adminEditorHeader span { color: #63cdb6; font-size: 10px; font-weight: 800; }
 .adminRailHeading h2 { margin: 6px 0 22px; font-size: 20px; }
+.adminSectionNav { display: grid; gap: 4px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid #33464d; }
+.adminSectionNav button, .adminRefreshButton { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 11px; border: 1px solid transparent; color: #a9bcb7; background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
+.adminSectionNav button:hover, .adminSectionNav .adminSectionActive { color: #eff8f5; border-color: #3f575d; background: #20343b; }
+.adminRefreshButton { width: 100%; margin-top: 18px; border-color: #3b5056; justify-content: center; }
+.adminRefreshButton:disabled { cursor: wait; opacity: .65; }
 .adminQuizList { display: grid; gap: 8px; }
 .adminNewButton { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 36px; margin-bottom: 12px; border: 1px solid #486067; color: #dcebe7; background: transparent; cursor: pointer; }
 .adminQuizList article { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; border: 1px solid #33464d; background: #1c2d34; }
@@ -2962,6 +2967,7 @@
 .adminListActions { display: flex; gap: 4px; }
 .adminListActions button:last-child { display: grid; place-items: center; width: 30px; padding: 0; color: #f3dada; background: #583738; }
 .adminEditor { width: min(1040px, 100%); margin: 0 auto; padding: 36px 42px 64px; }
+.adminWorkspace { width: min(1120px, 100%); margin: 0 auto; padding: 36px 42px 64px; }
 .adminEditorHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .adminEditorHeader h1 { margin: 7px 0 4px; font-size: 30px; letter-spacing: 0; }
 .adminEditorHeader p { margin: 0; color: #70817d; }
@@ -2983,16 +2989,71 @@
 .adminOptions span { color: #19806e; text-align: center; }
 .adminFooter { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #d5dddb; color: #70817d; font-size: 12px; }
 .adminError { margin-bottom: 14px; padding: 11px 13px; color: #8b2b2b; border: 1px solid #e5bdbd; background: #fff0f0; }
+.adminGenerateControls { display: flex; align-items: flex-end; gap: 8px; }
+.adminGenerateControls label { display: grid; gap: 5px; color: #546762; font-size: 11px; font-weight: 700; }
+.adminGenerateControls input { height: 40px; padding: 0 10px; border: 1px solid #cbd6d3; background: #fff; font: inherit; }
+.adminGenerateControls button { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 150px; height: 40px; }
+.adminMetrics { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 28px; border: 1px solid #ccd7d4; background: #fff; }
+.adminMetrics div { padding: 17px 20px; border-right: 1px solid #d9e1df; }
+.adminMetrics div:last-child { border-right: 0; }
+.adminMetrics span { display: block; margin-bottom: 6px; color: #71817d; font-size: 11px; }
+.adminMetrics strong { font-size: 24px; color: #17332d; }
+.adminSectionHeading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+.adminSectionHeading span, .adminValidationPanel header span { color: #168773; font-size: 10px; font-weight: 800; }
+.adminSectionHeading h2, .adminValidationPanel h2 { margin: 4px 0 0; font-size: 18px; }
+.adminLogList { border-top: 1px solid #cad5d2; }
+.adminLogList > article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 60px; border-bottom: 1px solid #d6dfdd; background: #fff; }
+.adminLogList > .adminLogSelected { box-shadow: inset 3px 0 #168c78; background: #f2faf7; }
+.adminLogMain { display: grid; grid-template-columns: 92px 110px minmax(0, 1fr) 54px; align-items: center; gap: 12px; min-width: 0; height: 59px; padding: 0 16px; border: 0; color: #263d38; background: transparent; text-align: left; cursor: pointer; }
+.adminLogMain small { overflow: hidden; color: #75847f; text-overflow: ellipsis; white-space: nowrap; }
+.adminLogMain b { text-align: right; font-size: 12px; }
+.adminStatus { display: inline-flex; align-items: center; justify-content: center; width: 82px; height: 24px; color: #52635f; border: 1px solid #c6d1ce; font-size: 10px; font-weight: 800; }
+.adminStatusREADY, .adminStatusPUBLISHED { color: #146957; border-color: #8ccdbd; background: #e9f8f4; }
+.adminStatusFAILED { color: #9a3232; border-color: #e2aaaa; background: #fff0f0; }
+.adminStatusGENERATING, .adminStatusVALIDATING, .adminStatusRETRYING { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
+.adminLogActions { display: flex; gap: 5px; padding-right: 12px; }
+.adminLogActions button { display: flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 9px; border: 1px solid #becbc7; color: #36504a; background: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.adminLogActions button:disabled { cursor: wait; opacity: .6; }
+.adminEmpty { padding: 32px; color: #788883; border: 1px solid #d5dddb; background: #fff; text-align: center; }
+.adminValidationPanel { margin-top: 24px; padding-top: 22px; border-top: 1px solid #ccd7d4; }
+.adminValidationPanel > header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.adminValidationPanel > header button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #cbd6d3; background: transparent; cursor: pointer; }
+.adminFailureReason { padding: 12px 14px; color: #923737; border-left: 3px solid #d85a5a; background: #fff0f0; font-size: 12px; }
+.adminValidationList { display: grid; gap: 8px; }
+.adminValidationList article { padding: 14px 16px; border: 1px solid #d3dcda; background: #fff; }
+.adminValidationList article > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adminValidationList span, .adminValidationList p, .adminValidationList li { color: #667873; font-size: 12px; }
+.adminValidationList ul { margin: 10px 0 0; padding-left: 18px; }
+.adminValidationList li + li { margin-top: 5px; }
+.adminValidationList li b { margin-right: 5px; color: #9a3b3b; font-size: 10px; }
+.adminUserTable { border-top: 1px solid #cbd6d3; background: #fff; }
+.adminUserHeader, .adminUserTable article { display: grid; grid-template-columns: minmax(180px, 1fr) 210px 120px; align-items: center; gap: 18px; min-height: 62px; padding: 0 18px; border-bottom: 1px solid #dae2e0; }
+.adminUserHeader { min-height: 38px; color: #768681; background: #edf2f0; font-size: 11px; font-weight: 700; }
+.adminUserTable strong, .adminUserTable small { display: block; }
+.adminUserTable small { margin-top: 3px; color: #788984; font-size: 11px; }
+.adminUserTable time { color: #62736e; font-size: 12px; }
+.adminUserTable select { height: 34px; padding: 0 8px; border: 1px solid #becbc7; background: #fff; font: inherit; font-size: 12px; }
+.adminUserTable select:disabled { color: #71807c; background: #edf1f0; }
 
 @media (max-width: 900px) {
   .adminHub { grid-template-columns: 1fr; }
   .adminRail { border-right: 0; }
   .adminQuizList { grid-template-columns: repeat(2, 1fr); }
-  .adminEditor { padding: 28px 20px 48px; }
+  .adminEditor, .adminWorkspace { padding: 28px 20px 48px; }
 }
 @media (max-width: 600px) {
   .adminEditorHeader { align-items: stretch; flex-direction: column; }
-  .adminTwoColumns, .adminOptions, .adminQuizList { grid-template-columns: 1fr; }
+  .adminTwoColumns, .adminOptions, .adminQuizList, .adminMetrics { grid-template-columns: 1fr; }
+  .adminMetrics div { border-right: 0; border-bottom: 1px solid #d9e1df; }
+  .adminMetrics div:last-child { border-bottom: 0; }
+  .adminGenerateControls { align-items: stretch; flex-direction: column; }
+  .adminLogList > article { grid-template-columns: 1fr; padding-bottom: 10px; }
+  .adminLogMain { grid-template-columns: 82px 1fr 48px; }
+  .adminLogMain small { display: none; }
+  .adminLogActions { padding: 0 12px; }
+  .adminUserHeader { display: none; }
+  .adminUserTable article { grid-template-columns: 1fr 105px; padding: 12px 14px; }
+  .adminUserTable time { grid-column: 1 / -1; grid-row: 2; }
   .adminFooter { align-items: stretch; flex-direction: column; }
 }
 
