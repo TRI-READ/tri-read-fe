@@ -72,3 +72,12 @@ jobs:
           ssh -i ~/.ssh/oci "$OCI_USER@$OCI_HOST" \
             "test -s ~/tri-read/frontend/out/index.html && \
               grep -q '<title>TRI:READ</title>' ~/tri-read/frontend/out/index.html"
+
+      - name: Smoke test production
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            https://tri-read.duckdns.org/ \
+            | grep -q '<title>TRI:READ</title>'
