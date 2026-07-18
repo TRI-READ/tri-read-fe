@@ -75,7 +75,8 @@ npm run build
 
 - `dev`: 기능 개발 및 CI 대상
 - `main`: 배포 기준 브랜치
-- GitHub Actions가 빌드를 검사하고 OCI 인스턴스에 프론트엔드 정적 파일을 배포합니다.
+- 매일 오전 9시 또는 수동 실행으로 `dev`의 변경을 `main` 승격 PR로 올립니다.
+- `main`의 프론트엔드 CI가 성공한 경우에만 OCI 인스턴스에 정적 파일을 독립적으로 배포합니다.
 
 운영 주소: https://tri-read.duckdns.org
 
