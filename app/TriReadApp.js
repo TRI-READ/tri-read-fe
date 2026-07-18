@@ -1271,11 +1271,53 @@ function blankAdminQuiz() {
   };
 }
 
+const ADMIN_VALIDATION_LABELS = {
+  RULE: "구조 규칙",
+  DIVERSITY: "주제 중복",
+  AI: "AI 품질",
+};
+
+function AdminPagination({ pagination, onPageChange, dark = false }) {
+  if (!pagination || pagination.totalElements === 0) return null;
+  const currentPage = pagination.page + 1;
+  const totalPages = Math.max(1, pagination.totalPages);
+  return (
+    <div className={`${styles.adminPagination} ${dark ? styles.adminPaginationDark : ""}`}>
+      <span>전체 {pagination.totalElements}건</span>
+      <div>
+        <button
+          type="button"
+          onClick={() => onPageChange(pagination.page - 1)}
+          disabled={pagination.page === 0}
+          aria-label="이전 페이지"
+          title="이전 페이지"
+        >
+          <ArrowLeft size={15} />
+        </button>
+        <strong>{currentPage} / {totalPages}</strong>
+        <button
+          type="button"
+          onClick={() => onPageChange(pagination.page + 1)}
+          disabled={currentPage >= totalPages}
+          aria-label="다음 페이지"
+          title="다음 페이지"
+        >
+          <ArrowRight size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdminQuizHub({
-  currentUser, quizzes, generationLogs, generationDetail, users, loading, actionLoading, error,
+  currentUser, quizPage, generationPage, generationDetail, userPage, loading, actionLoading, error,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
-  onLoadGeneration, onUpdateRole, onRefresh,
+  onLoadGeneration, onUpdateRole, onRefresh, onQuizPageChange,
+  onGenerationPageChange, onUserPageChange,
 }) {
+  const quizzes = quizPage?.page?.items || [];
+  const generationLogs = generationPage?.page?.items || [];
+  const users = userPage?.items || [];
   const [section, setSection] = useState("operations");
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
@@ -1359,8 +1401,9 @@ function AdminQuizHub({
               </article>
             ))}
           </div>
+          <AdminPagination pagination={quizPage?.page} onPageChange={onQuizPageChange} dark />
         </>}
-        <button className={styles.adminRefreshButton} type="button" onClick={onRefresh} disabled={loading}>
+        <button className={styles.adminRefreshButton} type="button" onClick={() => onRefresh()} disabled={loading}>
           <RefreshCw size={15} /> {loading ? "갱신 중" : "전체 새로고침"}
         </button>
       </aside>
@@ -1376,12 +1419,12 @@ function AdminQuizHub({
           </header>
           {error && <div className={styles.adminError}>{error}</div>}
           <div className={styles.adminMetrics}>
-            <div><span>발행 대기</span><strong>{quizzes.filter((quiz) => quiz.status === "REVIEWED" || quiz.status === "DRAFT").length}</strong></div>
-            <div><span>생성 성공</span><strong>{generationLogs.filter((log) => log.status === "READY" || log.status === "PUBLISHED").length}</strong></div>
-            <div><span>생성 실패</span><strong>{generationLogs.filter((log) => log.status === "FAILED").length}</strong></div>
+            <div><span>발행 대기</span><strong>{quizPage?.pendingCount || 0}</strong></div>
+            <div><span>생성 성공</span><strong>{generationPage?.successCount || 0}</strong></div>
+            <div><span>생성 실패</span><strong>{generationPage?.failureCount || 0}</strong></div>
           </div>
           <section className={styles.adminLogSection}>
-            <div className={styles.adminSectionHeading}><div><span>최근 100건</span><h2>생성 기록</h2></div></div>
+            <div className={styles.adminSectionHeading}><div><span>전체 {generationPage?.page?.totalElements || 0}건</span><h2>생성 기록</h2></div></div>
             {generationLogs.length ? <div className={styles.adminLogList}>
               {generationLogs.map((log) => {
                 const displayStatus = statusForGeneration(log);
@@ -1400,13 +1443,14 @@ function AdminQuizHub({
                 </article>;
               })}
             </div> : <div className={styles.adminEmpty}>아직 생성 기록이 없습니다.</div>}
+            <AdminPagination pagination={generationPage?.page} onPageChange={onGenerationPageChange} />
           </section>
           {generationDetail && <section className={styles.adminValidationPanel}>
             <header><div><span>GENERATION #{generationDetail.log.generationLogId}</span><h2>검증 상세</h2></div><button type="button" onClick={() => onLoadGeneration(null)} aria-label="검증 상세 닫기" title="닫기"><X size={17} /></button></header>
             {generationDetail.log.errorMessage && <p className={styles.adminFailureReason}>{generationDetail.log.errorMessage}</p>}
             <div className={styles.adminValidationList}>
               {generationDetail.validations.map((validation) => <article key={validation.validationResultId}>
-                <div><strong>{validation.validationType}</strong><span>{validation.attemptNumber}차 · {validation.score}점 · {validation.passed ? "통과" : "실패"}</span></div>
+                <div><strong>{ADMIN_VALIDATION_LABELS[validation.validationType] || validation.validationType}</strong><span>{validation.attemptNumber}차 · {validation.score}점 · {validation.passed ? "통과" : "실패"}</span></div>
                 {validation.issues.length ? <ul>{validation.issues.map((issue, index) => <li key={`${issue.code}-${index}`}><b>{issue.severity}</b> {issue.message}</li>)}</ul> : <p>발견된 문제가 없습니다.</p>}
               </article>)}
             </div>
@@ -1426,6 +1470,7 @@ function AdminQuizHub({
               </select>
             </article>)}
           </div>
+          <AdminPagination pagination={userPage} onPageChange={onUserPageChange} />
         </div>
       ) : (
       <form className={styles.adminEditor} onSubmit={submit}>
@@ -1591,10 +1636,19 @@ export default function TriReadApp() {
   const [orbitAnchor, setOrbitAnchor] = useState(() => new Date().toISOString().slice(0, 10));
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitError, setOrbitError] = useState("");
-  const [adminQuizzes, setAdminQuizzes] = useState([]);
-  const [adminGenerationLogs, setAdminGenerationLogs] = useState([]);
+  const [adminQuizPage, setAdminQuizPage] = useState({
+    page: { items: [], page: 0, size: 6, totalElements: 0, totalPages: 0 },
+    pendingCount: 0,
+  });
+  const [adminGenerationPage, setAdminGenerationPage] = useState({
+    page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
+    successCount: 0,
+    failureCount: 0,
+  });
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
-  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminUserPage, setAdminUserPage] = useState({
+    items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
+  });
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
@@ -1786,23 +1840,51 @@ export default function TriReadApp() {
     loadOrbit(orbitPeriod, nextAnchor);
   }
 
-  async function loadAdminQuizzes() {
+  async function loadAdminQuizzes(page = adminQuizPage.page.page) {
     setAdminLoading(true); setAdminError("");
-    try { setAdminQuizzes(await apiFetch("/api/admin/quizzes")); }
+    try {
+      const response = await apiFetch(`/api/admin/quizzes?page=${page}&size=6`);
+      setAdminQuizPage(response);
+      return response;
+    }
     catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
-  async function loadAdminConsole() {
+  async function loadAdminGenerationPage(page = adminGenerationPage.page.page) {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const response = await apiFetch(`/api/admin/quiz-generations?page=${page}&size=10`);
+      setAdminGenerationPage(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function loadAdminUsers(page = adminUserPage.page) {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const response = await apiFetch(`/api/admin/users?page=${page}&size=10`);
+      setAdminUserPage(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function loadAdminConsole(pages = {}) {
+    const quizIndex = Number.isInteger(pages.quiz) ? pages.quiz : adminQuizPage.page.page;
+    const generationIndex = Number.isInteger(pages.generation)
+      ? pages.generation
+      : adminGenerationPage.page.page;
+    const userIndex = Number.isInteger(pages.user) ? pages.user : adminUserPage.page;
     setAdminLoading(true); setAdminError("");
     try {
       const [quizzes, logs, accounts] = await Promise.all([
-        apiFetch("/api/admin/quizzes"),
-        apiFetch("/api/admin/quiz-generations"),
-        apiFetch("/api/admin/users"),
+        apiFetch(`/api/admin/quizzes?page=${quizIndex}&size=6`),
+        apiFetch(`/api/admin/quiz-generations?page=${generationIndex}&size=10`),
+        apiFetch(`/api/admin/users?page=${userIndex}&size=10`),
       ]);
-      setAdminQuizzes(quizzes);
-      setAdminGenerationLogs(logs);
-      setAdminUsers(accounts);
+      setAdminQuizPage(quizzes);
+      setAdminGenerationPage(logs);
+      setAdminUserPage(accounts);
+      return { quizzes, logs, accounts };
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
@@ -1810,18 +1892,30 @@ export default function TriReadApp() {
     setAdminActionLoading("generate"); setAdminError("");
     try {
       const result = await apiFetch("/api/admin/quiz-generations", { method: "POST", body: JSON.stringify({ targetDate }) });
-      await loadAdminConsole();
+      await loadAdminConsole({ quiz: 0, generation: 0 });
       await loadAdminGeneration(result.generationLogId);
-    } catch (error) { setAdminError(getErrorMessage(error)); }
+    } catch (error) {
+      const message = getErrorMessage(error);
+      const refreshed = await loadAdminConsole({ generation: 0 });
+      const latestLog = refreshed?.logs?.page?.items?.[0];
+      if (latestLog) await loadAdminGeneration(latestLog.generationLogId);
+      setAdminError(message);
+    }
     finally { setAdminActionLoading(""); }
   }
   async function retryAdminGeneration(generationLogId) {
     setAdminActionLoading(`retry-${generationLogId}`); setAdminError("");
     try {
       const result = await apiFetch(`/api/admin/quiz-generations/${generationLogId}/retry`, { method: "POST" });
-      await loadAdminConsole();
+      await loadAdminConsole({ quiz: 0, generation: 0 });
       await loadAdminGeneration(result.generationLogId);
-    } catch (error) { setAdminError(getErrorMessage(error)); }
+    } catch (error) {
+      const message = getErrorMessage(error);
+      const refreshed = await loadAdminConsole({ generation: 0 });
+      const latestLog = refreshed?.logs?.page?.items?.[0];
+      if (latestLog) await loadAdminGeneration(latestLog.generationLogId);
+      setAdminError(message);
+    }
     finally { setAdminActionLoading(""); }
   }
   async function loadAdminGeneration(generationLogId) {
@@ -1834,13 +1928,16 @@ export default function TriReadApp() {
     setAdminActionLoading(`role-${userId}`); setAdminError("");
     try {
       const updated = await apiFetch(`/api/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
-      setAdminUsers((current) => current.map((account) => account.userId === userId ? updated : account));
+      setAdminUserPage((current) => ({
+        ...current,
+        items: current.items.map((account) => account.userId === userId ? updated : account),
+      }));
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminActionLoading(""); }
   }
   async function createAdminQuiz(draft) {
     setAdminError("");
-    try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(); }
+    try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(0); }
     catch (error) { setAdminError(getErrorMessage(error)); throw error; }
   }
   async function loadAdminQuiz(quizSetId) {
@@ -2030,10 +2127,10 @@ export default function TriReadApp() {
       ) : view === "admin" && user.role === "ADMIN" ? (
         <AdminQuizHub
           currentUser={user}
-          quizzes={adminQuizzes}
-          generationLogs={adminGenerationLogs}
+          quizPage={adminQuizPage}
+          generationPage={adminGenerationPage}
           generationDetail={adminGenerationDetail}
-          users={adminUsers}
+          userPage={adminUserPage}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2047,6 +2144,9 @@ export default function TriReadApp() {
           onLoadGeneration={loadAdminGeneration}
           onUpdateRole={updateAdminRole}
           onRefresh={loadAdminConsole}
+          onQuizPageChange={loadAdminQuizzes}
+          onGenerationPageChange={loadAdminGenerationPage}
+          onUserPageChange={loadAdminUsers}
         />
       ) : view === "reviews" ? (
         <ReviewHub

@@ -3034,6 +3034,15 @@
 .adminUserTable time { color: #62736e; font-size: 12px; }
 .adminUserTable select { height: 34px; padding: 0 8px; border: 1px solid #becbc7; background: #fff; font: inherit; font-size: 12px; }
 .adminUserTable select:disabled { color: #71807c; background: #edf1f0; }
+.adminPagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; padding: 8px 2px; color: #647670; font-size: 12px; }
+.adminPagination > div { display: flex; align-items: center; gap: 10px; }
+.adminPagination strong { min-width: 52px; color: #29443d; text-align: center; }
+.adminPagination button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid #becbc7; color: #34534b; background: #fff; cursor: pointer; }
+.adminPagination button:hover:not(:disabled) { border-color: #168773; color: #0d6f5d; }
+.adminPagination button:disabled { cursor: default; opacity: .35; }
+.adminPaginationDark { color: #9fb1ad; }
+.adminPaginationDark strong { color: #e6f1ee; }
+.adminPaginationDark button { border-color: #435a55; color: #c6d7d3; background: #17302a; }
 
 @media (max-width: 900px) {
   .adminHub { grid-template-columns: 1fr; }
