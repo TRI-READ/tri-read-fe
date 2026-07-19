@@ -64,6 +64,13 @@ npm run dev
 npm run build
 ```
 
+핵심 인증·탐색 흐름은 Playwright로 검증합니다. API는 테스트 안에서 가짜 응답으로 격리하므로 운영 DB를 변경하지 않습니다.
+
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
+
 OCI에 배포할 정적 파일은 `STATIC_EXPORT`를 활성화해 생성합니다.
 
 ```powershell
@@ -94,6 +101,10 @@ dev push -> PR CI -> main 병합 -> main CI -> OCI 정적 배포 -> 운영 스�
 - OCI SSH 개인 키와 접속 정보는 GitHub Actions secret으로만 전달합니다.
 - 비밀값과 빌드 결과물은 저장소에 커밋하지 않습니다.
 - 정답은 제출 전 프론트 HTML, JavaScript 번들과 퀴즈 조회 응답에 포함하지 않습니다.
+- CI는 운영 의존성 취약점 검사, Chromium 기반 핵심 사용자 흐름 테스트와 빌드를 모두 통과해야 합니다.
+- Dependabot이 npm 패키지와 GitHub Actions 업데이트를 매주 확인합니다.
+- CodeQL `security-extended` 쿼리가 PR, `dev/main` 푸시, 주간 일정에서 JavaScript 코드를 검사합니다.
+- OCI 배포는 `OCI_KNOWN_HOSTS` Secret에 고정한 SSH 호스트 키만 신뢰합니다.
 
 운영 주소: https://tri-read.duckdns.org
 
