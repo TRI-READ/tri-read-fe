@@ -1471,7 +1471,7 @@ function AdminQuizHub({
 
   const sectionItems = [
     ["operations", Sparkles, "생성 운영"],
-    ["prompts", FileText, "프롬프트"],
+    ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
     ["access", ShieldCheck, "권한 관리"],
   ];
