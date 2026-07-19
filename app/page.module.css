@@ -3044,11 +3044,54 @@
 .adminPaginationDark strong { color: #e6f1ee; }
 .adminPaginationDark button { border-color: #435a55; color: #c6d7d3; background: #17302a; }
 
+.adminPromptTypeTabs { display: grid; grid-template-columns: repeat(2, 90px); border: 1px solid #c7d3d0; background: #edf2f0; }
+.adminPromptTypeTabs button { height: 38px; border: 0; color: #657873; background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.adminPromptTypeTabs .adminPromptTypeActive { color: #123f36; background: #9ce1d1; font-weight: 800; }
+.adminPromptSummary { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 26px; border-block: 1px solid #ccd7d4; background: #fff; }
+.adminPromptSummary div { min-width: 0; padding: 15px 18px; border-right: 1px solid #d9e1df; }
+.adminPromptSummary div:last-child { border-right: 0; }
+.adminPromptSummary span, .adminPromptSummary strong { display: block; }
+.adminPromptSummary span { margin-bottom: 5px; color: #71817d; font-size: 10px; }
+.adminPromptSummary strong { overflow: hidden; color: #17332d; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.adminPromptLayout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .8fr); gap: 28px; align-items: start; }
+.adminPromptEditor { padding-right: 28px; border-right: 1px solid #ccd7d4; }
+.adminPromptEditor label { display: grid; gap: 7px; margin-top: 14px; color: #40534f; font-size: 12px; font-weight: 700; }
+.adminPromptEditor textarea, .adminPromptEditor input { width: 100%; padding: 11px 12px; border: 1px solid #c9d5d2; color: #263a36; background: #fff; font: inherit; resize: vertical; }
+.adminPromptEditor textarea { min-height: 400px; line-height: 1.55; }
+.adminPromptEditor textarea:focus, .adminPromptEditor input:focus { outline: 2px solid #82d9c5; outline-offset: 1px; }
+.adminPromptEditor .adminSectionHeading > small { color: #7b8985; font-size: 10px; }
+.adminPromptEditorFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; color: #71817d; font-size: 11px; }
+.adminPromptEditorFooter button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 138px; }
+.adminPromptVersions { min-width: 0; }
+.adminPromptVersions > article { margin-bottom: 8px; padding: 14px; border: 1px solid #d1dcda; background: #fff; }
+.adminPromptVersions > .adminPromptVersionActive { border-color: #69bca9; box-shadow: inset 3px 0 #168c78; background: #f1faf7; }
+.adminPromptVersions article header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adminPromptVersions article header > div { display: flex; align-items: center; gap: 8px; }
+.adminPromptVersions article header strong { color: #183a33; font-size: 16px; }
+.adminPromptVersions time { color: #788984; font-size: 10px; }
+.adminPromptVersions article > p { margin: 10px 0 7px; color: #40534f; font-size: 12px; line-height: 1.45; }
+.adminPromptVersions article > small { color: #80908c; font-size: 10px; }
+.adminPromptStatusACTIVE { color: #146957; border-color: #8ccdbd; background: #e9f8f4; }
+.adminPromptStatusARCHIVED { color: #53635f; background: #edf1f0; }
+.adminPromptStatusDRAFT { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
+.adminPromptVersionActions { display: flex; gap: 6px; margin-top: 12px; }
+.adminPromptVersionActions button { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 0 9px; border: 1px solid #becbc7; color: #36504a; background: #fff; font: inherit; font-size: 10px; cursor: pointer; }
+.adminPromptVersionActions button:last-child { color: #126b5b; border-color: #78bdae; background: #edf9f6; }
+.adminPromptVersionActions button:disabled { cursor: wait; opacity: .55; }
+.adminPromptActivations { margin-top: 30px; padding-top: 22px; border-top: 1px solid #ccd7d4; }
+.adminPromptActivations > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #d5dfdc; }
+.adminPromptActivations p { display: grid; grid-template-columns: 18px 40px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-width: 0; min-height: 42px; margin: 0; padding: 0 12px; color: #5c706b; background: #fff; font-size: 11px; }
+.adminPromptActivations p strong { color: #176f60; }
+.adminPromptActivations p span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adminPromptActivations p time { color: #83918e; font-size: 9px; }
+
 @media (max-width: 900px) {
   .adminHub { grid-template-columns: 1fr; }
   .adminRail { border-right: 0; }
   .adminQuizList { grid-template-columns: repeat(2, 1fr); }
   .adminEditor, .adminWorkspace { padding: 28px 20px 48px; }
+  .adminPromptLayout { grid-template-columns: 1fr; }
+  .adminPromptEditor { padding: 0 0 26px; border-right: 0; border-bottom: 1px solid #ccd7d4; }
 }
 @media (max-width: 600px) {
   .adminEditorHeader { align-items: stretch; flex-direction: column; }
@@ -3064,6 +3107,14 @@
   .adminUserTable article { grid-template-columns: 1fr 105px; padding: 12px 14px; }
   .adminUserTable time { grid-column: 1 / -1; grid-row: 2; }
   .adminFooter { align-items: stretch; flex-direction: column; }
+  .adminPromptTypeTabs { grid-template-columns: repeat(2, 1fr); }
+  .adminPromptSummary { grid-template-columns: 1fr; }
+  .adminPromptSummary div { border-right: 0; border-bottom: 1px solid #d9e1df; }
+  .adminPromptSummary div:last-child { border-bottom: 0; }
+  .adminPromptEditorFooter { align-items: stretch; flex-direction: column; }
+  .adminPromptActivations > div:last-child { grid-template-columns: 1fr; }
+  .adminPromptActivations p { grid-template-columns: 18px 34px minmax(0, 1fr); }
+  .adminPromptActivations p time { grid-column: 3; }
 }
 
 @media (max-width: 780px) {
