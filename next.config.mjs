@@ -3,6 +3,7 @@ const staticExport = process.env.STATIC_EXPORT === "true";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   ...(staticExport
     ? { output: "export", trailingSlash: true }
     : {

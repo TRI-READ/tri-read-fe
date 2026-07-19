@@ -116,6 +116,7 @@ function getErrorMessage(error) {
     GEMINI_API_KEY_MISSING: "서버에 Gemini API 키가 설정되어 있지 않아요.",
     GEMINI_RATE_LIMITED: "Gemini 호출 한도에 도달했어요. 잠시 뒤 다시 시도해 주세요.",
     GEMINI_UNAVAILABLE: "Gemini가 일시적으로 응답하지 않아요.",
+    TOO_MANY_LOGIN_ATTEMPTS: "로그인 시도가 너무 많아요. 10분 뒤 다시 시도해 주세요.",
   };
   return messages[error.code] || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
 }
