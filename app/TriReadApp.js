@@ -18,6 +18,7 @@ import {
   History,
   KeyRound,
   Landmark,
+  LockKeyhole,
   LogIn,
   LogOut,
   NotebookPen,
@@ -116,6 +117,7 @@ function getErrorMessage(error) {
     GEMINI_API_KEY_MISSING: "서버에 Gemini API 키가 설정되어 있지 않아요.",
     GEMINI_RATE_LIMITED: "Gemini 호출 한도에 도달했어요. 잠시 뒤 다시 시도해 주세요.",
     GEMINI_UNAVAILABLE: "Gemini가 일시적으로 응답하지 않아요.",
+    QUIZ_GENERATION_API_DAILY_LIMIT_REACHED: "오늘 설정한 Gemini 호출 한도를 모두 사용했어요.",
     TOO_MANY_LOGIN_ATTEMPTS: "로그인 시도가 너무 많아요. 10분 뒤 다시 시도해 주세요.",
   };
   return messages[error.code] || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
@@ -1411,9 +1413,10 @@ function AdminPromptPanel({ promptPage, loading, actionLoading, error, onLoad, o
 
 function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
+  generationFilters, loginLocks, auditPage,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
   onLoadGeneration, onUpdateRole, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onUserPageChange,
+  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin,
 }) {
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
@@ -1424,6 +1427,17 @@ function AdminQuizHub({
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [generationDate, setGenerationDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [filterStatus, setFilterStatus] = useState(generationFilters?.status || "");
+  const [filterDate, setFilterDate] = useState(generationFilters?.targetDate || "");
+
+  useEffect(() => {
+    if (section === "security") onLoadSecurity(auditPage?.page || 0);
+  }, [section]);
+
+  useEffect(() => {
+    setFilterStatus(generationFilters?.status || "");
+    setFilterDate(generationFilters?.targetDate || "");
+  }, [generationFilters?.status, generationFilters?.targetDate]);
 
   function updatePassage(field, value) {
     setDraft((current) => ({ ...current, passages: current.passages.map((p, i) => i === activePassage ? { ...p, [field]: value } : p) }));
@@ -1475,6 +1489,7 @@ function AdminQuizHub({
     ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
     ["access", ShieldCheck, "권한 관리"],
+    ["security", LockKeyhole, "보안·감사"],
   ];
 
   return (
@@ -1523,9 +1538,35 @@ function AdminQuizHub({
             <div><span>발행 대기</span><strong>{quizPage?.pendingCount || 0}</strong></div>
             <div><span>생성 성공</span><strong>{generationPage?.successCount || 0}</strong></div>
             <div><span>생성 실패</span><strong>{generationPage?.failureCount || 0}</strong></div>
+            <div>
+              <span>오늘 Gemini 호출</span>
+              <strong>{generationPage?.apiUsage?.totalCount || 0}<small> / {generationPage?.apiUsage?.limit || 0}</small></strong>
+            </div>
           </div>
           <section className={styles.adminLogSection}>
-            <div className={styles.adminSectionHeading}><div><span>전체 {generationPage?.page?.totalElements || 0}건</span><h2>생성 기록</h2></div></div>
+            <div className={styles.adminSectionHeading}>
+              <div><span>전체 {generationPage?.page?.totalElements || 0}건</span><h2>생성 기록</h2></div>
+              <span className={styles.adminValidationMode}>{generationPage?.aiValidationEnabled ? "AI 2차 검증 사용" : "로컬 자동 검증 사용"}</span>
+            </div>
+            <form className={styles.adminLogFilters} onSubmit={(event) => {
+              event.preventDefault();
+              onGenerationFilterChange({ status: filterStatus, targetDate: filterDate });
+            }}>
+              <label>상태<select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
+                <option value="">전체</option>
+                <option value="GENERATING">생성 중</option>
+                <option value="VALIDATING">검증 중</option>
+                <option value="READY">생성 성공</option>
+                <option value="FAILED">생성 실패</option>
+              </select></label>
+              <label>대상 날짜<input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} /></label>
+              <button type="submit">조회</button>
+              <button type="button" onClick={() => {
+                setFilterStatus("");
+                setFilterDate("");
+                onGenerationFilterChange({ status: "", targetDate: "" });
+              }}>초기화</button>
+            </form>
             {generationLogs.length ? <div className={styles.adminLogList}>
               {generationLogs.map((log) => {
                 const displayStatus = statusForGeneration(log);
@@ -1582,6 +1623,32 @@ function AdminQuizHub({
             </article>)}
           </div>
           <AdminPagination pagination={userPage} onPageChange={onUserPageChange} />
+        </div>
+      ) : section === "security" ? (
+        <div className={styles.adminWorkspace}>
+          <header className={styles.adminEditorHeader}><div><span>SECURITY & AUDIT</span><h1>보안·감사</h1><p>현재 잠긴 로그인과 관리자 변경 이력을 확인합니다.</p></div></header>
+          {error && <div className={styles.adminError}>{error}</div>}
+          <section className={styles.adminSecuritySection}>
+            <div className={styles.adminSectionHeading}><div><span>LOGIN LOCKS</span><h2>로그인 잠금</h2></div><strong>{loginLocks.length}건</strong></div>
+            {loginLocks.length ? <div className={styles.adminLockList}>
+              {loginLocks.map((lock) => <article key={`${lock.loginName}-${lock.expiresAt}`}>
+                <div><strong>@{lock.loginName}</strong><small>{lock.clientAddress} · 실패 {lock.failures}회</small></div>
+                <time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(lock.expiresAt))}까지</time>
+                <button type="button" onClick={() => onUnlockLogin(lock.loginName)} disabled={actionLoading === `unlock-${lock.loginName}`}>잠금 해제</button>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>현재 잠긴 로그인이 없습니다.</div>}
+          </section>
+          <section className={styles.adminSecuritySection}>
+            <div className={styles.adminSectionHeading}><div><span>ADMIN AUDIT</span><h2>관리자 작업 이력</h2></div></div>
+            {(auditPage?.items || []).length ? <div className={styles.adminAuditList}>
+              {auditPage.items.map((audit) => <article key={audit.auditLogId}>
+                <span className={styles.adminAuditAction}>{audit.action}</span>
+                <div><strong>{audit.targetType}{audit.targetId ? ` #${audit.targetId}` : ""}</strong><small>@{audit.actorLoginName || "삭제된 사용자"}</small></div>
+                <time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(audit.createdAt))}</time>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>기록된 관리자 작업이 없습니다.</div>}
+            <AdminPagination pagination={auditPage} onPageChange={onLoadSecurity} />
+          </section>
         </div>
       ) : (
       <form className={styles.adminEditor} onSubmit={submit}>
@@ -1755,7 +1822,10 @@ export default function TriReadApp() {
     page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
     successCount: 0,
     failureCount: 0,
+    apiUsage: { totalCount: 0, successCount: 0, failureCount: 0, limit: 0 },
+    aiValidationEnabled: false,
   });
+  const [adminGenerationFilters, setAdminGenerationFilters] = useState({ status: "", targetDate: "" });
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
   const [adminUserPage, setAdminUserPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
@@ -1764,6 +1834,10 @@ export default function TriReadApp() {
     page: { items: [], page: 0, size: 8, totalElements: 0, totalPages: 0 },
     active: null,
     recentActivations: [],
+  });
+  const [adminLoginLocks, setAdminLoginLocks] = useState([]);
+  const [adminAuditPage, setAdminAuditPage] = useState({
+    items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
@@ -1966,10 +2040,13 @@ export default function TriReadApp() {
     catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
-  async function loadAdminGenerationPage(page = adminGenerationPage.page.page) {
+  async function loadAdminGenerationPage(page = adminGenerationPage.page.page, filters = adminGenerationFilters) {
     setAdminLoading(true); setAdminError("");
     try {
-      const response = await apiFetch(`/api/admin/quiz-generations?page=${page}&size=10`);
+      const params = new URLSearchParams({ page: String(page), size: "10" });
+      if (filters.status) params.set("status", filters.status);
+      if (filters.targetDate) params.set("targetDate", filters.targetDate);
+      const response = await apiFetch(`/api/admin/quiz-generations?${params}`);
       setAdminGenerationPage(response);
       return response;
     } catch (error) { setAdminError(getErrorMessage(error)); }
@@ -1984,6 +2061,11 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function filterAdminGeneration(filters) {
+    setAdminGenerationFilters(filters);
+    setAdminGenerationDetail(null);
+    return loadAdminGenerationPage(0, filters);
+  }
   async function loadAdminPrompts(promptType = "GENERATION", page = 0) {
     setAdminLoading(true); setAdminError("");
     try {
@@ -1992,6 +2074,27 @@ export default function TriReadApp() {
       return response;
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
+  }
+  async function loadAdminSecurity(page = adminAuditPage.page) {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const [locks, audits] = await Promise.all([
+        apiFetch("/api/admin/security/login-locks"),
+        apiFetch(`/api/admin/audit-logs?page=${page}&size=10`),
+      ]);
+      setAdminLoginLocks(locks);
+      setAdminAuditPage(audits);
+      return { locks, audits };
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function unlockAdminLogin(loginName) {
+    setAdminActionLoading(`unlock-${loginName}`); setAdminError("");
+    try {
+      await apiFetch(`/api/admin/security/login-locks/${encodeURIComponent(loginName)}`, { method: "DELETE" });
+      await loadAdminSecurity(0);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
   }
   async function createAdminPrompt(payload) {
     setAdminActionLoading("prompt-create"); setAdminError("");
@@ -2031,8 +2134,13 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function refreshAdminConsole() {
+    setAdminGenerationFilters({ status: "", targetDate: "" });
+    return loadAdminConsole({ generation: 0 });
+  }
   async function generateAdminQuiz(targetDate) {
     setAdminActionLoading("generate"); setAdminError("");
+    setAdminGenerationFilters({ status: "", targetDate: "" });
     try {
       const result = await apiFetch("/api/admin/quiz-generations", { method: "POST", body: JSON.stringify({ targetDate }) });
       await loadAdminConsole({ quiz: 0, generation: 0 });
@@ -2048,6 +2156,7 @@ export default function TriReadApp() {
   }
   async function retryAdminGeneration(generationLogId) {
     setAdminActionLoading(`retry-${generationLogId}`); setAdminError("");
+    setAdminGenerationFilters({ status: "", targetDate: "" });
     try {
       const result = await apiFetch(`/api/admin/quiz-generations/${generationLogId}/retry`, { method: "POST" });
       await loadAdminConsole({ quiz: 0, generation: 0 });
@@ -2275,6 +2384,9 @@ export default function TriReadApp() {
           generationDetail={adminGenerationDetail}
           userPage={adminUserPage}
           promptPage={adminPromptPage}
+          generationFilters={adminGenerationFilters}
+          loginLocks={adminLoginLocks}
+          auditPage={adminAuditPage}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2290,10 +2402,13 @@ export default function TriReadApp() {
           onLoadPrompts={loadAdminPrompts}
           onCreatePrompt={createAdminPrompt}
           onActivatePrompt={activateAdminPrompt}
-          onRefresh={loadAdminConsole}
+          onRefresh={refreshAdminConsole}
           onQuizPageChange={loadAdminQuizzes}
           onGenerationPageChange={loadAdminGenerationPage}
+          onGenerationFilterChange={filterAdminGeneration}
           onUserPageChange={loadAdminUsers}
+          onLoadSecurity={loadAdminSecurity}
+          onUnlockLogin={unlockAdminLogin}
         />
       ) : view === "reviews" ? (
         <ReviewHub
