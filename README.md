@@ -78,7 +78,22 @@ npm run build
 - `dev`: 기능 개발 및 CI 대상
 - `main`: 배포 기준 브랜치
 - 매일 오전 9시 또는 수동 실행으로 `dev`의 변경을 `main` 승격 PR로 올립니다.
-- `main`의 프론트엔드 CI가 성공한 경우에만 OCI 인스턴스에 정적 파일을 독립적으로 배포합니다.
+- 승격 워크플로는 PR 검사를 통과한 변경만 병합하고, `main` CI와 OCI 배포가 모두 끝날 때까지 대기합니다.
+- `main`의 프론트엔드 CI가 성공하면 재사용 배포 워크플로를 호출해 정적 파일을 OCI에 독립적으로 배포합니다.
+- 배포 마지막에는 운영 주소의 HTML 제목을 확인하는 스모크 테스트를 실행합니다.
+
+```text
+dev push -> PR CI -> main 병합 -> main CI -> OCI 정적 배포 -> 운영 스모크 테스트
+```
+
+배포가 실패하면 GitHub Actions의 `Frontend CI` 실행에서 `deploy` 작업 로그를 확인합니다. 긴급 재배포만 `Deploy frontend to OCI` 워크플로를 수동 실행합니다.
+
+## 보안 원칙
+
+- 운영 API는 같은 도메인의 상대 경로 `/api/*`로만 호출합니다.
+- OCI SSH 개인 키와 접속 정보는 GitHub Actions secret으로만 전달합니다.
+- 비밀값과 빌드 결과물은 저장소에 커밋하지 않습니다.
+- 정답은 제출 전 프론트 HTML, JavaScript 번들과 퀴즈 조회 응답에 포함하지 않습니다.
 
 운영 주소: https://tri-read.duckdns.org
 
