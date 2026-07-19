@@ -2993,14 +2993,21 @@
 .adminGenerateControls label { display: grid; gap: 5px; color: #546762; font-size: 11px; font-weight: 700; }
 .adminGenerateControls input { height: 40px; padding: 0 10px; border: 1px solid #cbd6d3; background: #fff; font: inherit; }
 .adminGenerateControls button { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 150px; height: 40px; }
-.adminMetrics { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 28px; border: 1px solid #ccd7d4; background: #fff; }
+.adminMetrics { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 28px; border: 1px solid #ccd7d4; background: #fff; }
 .adminMetrics div { padding: 17px 20px; border-right: 1px solid #d9e1df; }
 .adminMetrics div:last-child { border-right: 0; }
 .adminMetrics span { display: block; margin-bottom: 6px; color: #71817d; font-size: 11px; }
 .adminMetrics strong { font-size: 24px; color: #17332d; }
+.adminMetrics strong small { color: #71817d; font-size: 13px; }
 .adminSectionHeading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
 .adminSectionHeading span, .adminValidationPanel header span { color: #168773; font-size: 10px; font-weight: 800; }
 .adminSectionHeading h2, .adminValidationPanel h2 { margin: 4px 0 0; font-size: 18px; }
+.adminValidationMode { padding: 6px 9px; color: #176f60 !important; border: 1px solid #9bcfc2; background: #edf9f6; font-size: 10px !important; }
+.adminLogFilters { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; padding: 12px; border-block: 1px solid #d5dddb; background: #eef3f1; }
+.adminLogFilters label { display: grid; gap: 5px; color: #526762; font-size: 10px; font-weight: 800; }
+.adminLogFilters select, .adminLogFilters input { height: 34px; min-width: 150px; padding: 0 9px; border: 1px solid #becbc7; color: #304842; background: #fff; font: inherit; font-size: 12px; }
+.adminLogFilters button { height: 34px; padding: 0 13px; border: 1px solid #9eb5af; color: #31534b; background: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.adminLogFilters button[type="submit"] { color: #fff; border-color: #167b69; background: #167b69; }
 .adminLogList { border-top: 1px solid #cad5d2; }
 .adminLogList > article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 60px; border-bottom: 1px solid #d6dfdd; background: #fff; }
 .adminLogList > .adminLogSelected { box-shadow: inset 3px 0 #168c78; background: #f2faf7; }
@@ -3034,6 +3041,20 @@
 .adminUserTable time { color: #62736e; font-size: 12px; }
 .adminUserTable select { height: 34px; padding: 0 8px; border: 1px solid #becbc7; background: #fff; font: inherit; font-size: 12px; }
 .adminUserTable select:disabled { color: #71807c; background: #edf1f0; }
+.adminSecuritySection + .adminSecuritySection { margin-top: 34px; padding-top: 26px; border-top: 1px solid #cbd6d3; }
+.adminSecuritySection .adminSectionHeading > strong { color: #38534c; font-size: 13px; }
+.adminLockList, .adminAuditList { border-top: 1px solid #cbd6d3; background: #fff; }
+.adminLockList article { display: grid; grid-template-columns: minmax(180px, 1fr) 210px 92px; align-items: center; gap: 16px; min-height: 64px; padding: 0 16px; border-bottom: 1px solid #dbe2e0; }
+.adminLockList strong, .adminLockList small { display: block; }
+.adminLockList small { margin-top: 4px; color: #75847f; font-size: 11px; }
+.adminLockList time { color: #5e716c; font-size: 11px; }
+.adminLockList button { height: 32px; border: 1px solid #d59f9f; color: #8d3434; background: #fff4f4; font: inherit; font-size: 11px; cursor: pointer; }
+.adminLockList button:disabled { cursor: wait; opacity: .55; }
+.adminAuditList article { display: grid; grid-template-columns: 190px minmax(180px, 1fr) 210px; align-items: center; gap: 16px; min-height: 60px; padding: 0 16px; border-bottom: 1px solid #dbe2e0; }
+.adminAuditAction { overflow: hidden; color: #176f60; font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.adminAuditList strong, .adminAuditList small { display: block; }
+.adminAuditList small { margin-top: 3px; color: #7a8985; font-size: 10px; }
+.adminAuditList time { color: #667873; text-align: right; font-size: 11px; }
 .adminPagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; padding: 8px 2px; color: #647670; font-size: 12px; }
 .adminPagination > div { display: flex; align-items: center; gap: 10px; }
 .adminPagination strong { min-width: 52px; color: #29443d; text-align: center; }
@@ -3099,6 +3120,8 @@
   .adminMetrics div { border-right: 0; border-bottom: 1px solid #d9e1df; }
   .adminMetrics div:last-child { border-bottom: 0; }
   .adminGenerateControls { align-items: stretch; flex-direction: column; }
+  .adminLogFilters { align-items: stretch; flex-direction: column; }
+  .adminLogFilters select, .adminLogFilters input { width: 100%; }
   .adminLogList > article { grid-template-columns: 1fr; padding-bottom: 10px; }
   .adminLogMain { grid-template-columns: 82px 1fr 48px; }
   .adminLogMain small { display: none; }
@@ -3106,6 +3129,8 @@
   .adminUserHeader { display: none; }
   .adminUserTable article { grid-template-columns: 1fr 105px; padding: 12px 14px; }
   .adminUserTable time { grid-column: 1 / -1; grid-row: 2; }
+  .adminLockList article, .adminAuditList article { grid-template-columns: 1fr auto; padding: 12px 14px; }
+  .adminLockList time, .adminAuditList time { grid-column: 1 / -1; grid-row: 2; text-align: left; }
   .adminFooter { align-items: stretch; flex-direction: column; }
   .adminPromptTypeTabs { grid-template-columns: repeat(2, 1fr); }
   .adminPromptSummary { grid-template-columns: 1fr; }
