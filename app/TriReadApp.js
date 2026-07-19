@@ -14,6 +14,8 @@ import {
   Crown,
   Clock3,
   Flame,
+  FileText,
+  History,
   KeyRound,
   Landmark,
   LogIn,
@@ -22,6 +24,7 @@ import {
   Orbit,
   Plus,
   RefreshCw,
+  RotateCcw,
   Rocket,
   Scale,
   Send,
@@ -1309,10 +1312,106 @@ function AdminPagination({ pagination, onPageChange, dark = false }) {
   );
 }
 
+function AdminPromptPanel({ promptPage, loading, actionLoading, error, onLoad, onCreate, onActivate }) {
+  const [promptType, setPromptType] = useState("GENERATION");
+  const [content, setContent] = useState("");
+  const [changeNote, setChangeNote] = useState("");
+  const versions = promptPage?.page?.items || [];
+  const active = promptPage?.active;
+
+  useEffect(() => {
+    onLoad(promptType, 0);
+  }, [promptType]);
+
+  useEffect(() => {
+    if (active?.promptType === promptType) {
+      setContent(active.content);
+    }
+  }, [promptType, active?.promptTemplateId]);
+
+  async function saveVersion(event) {
+    event.preventDefault();
+    try {
+      await onCreate({ promptType, content, changeNote });
+      setChangeNote("");
+    } catch {
+      // The parent exposes the API error in the shared admin error panel.
+    }
+  }
+
+  async function activateVersion(version) {
+    const action = version.status === "ARCHIVED" ? "이전 버전으로 되돌릴까요?" : "이 버전을 활성화할까요?";
+    if (!window.confirm(`v${version.versionNumber} ${action}`)) return;
+    try {
+      await onActivate(version.promptTemplateId, promptType, promptPage?.page?.page || 0);
+    } catch {
+      // The parent exposes the API error in the shared admin error panel.
+    }
+  }
+
+  function changeType(nextType) {
+    setPromptType(nextType);
+    setContent("");
+    setChangeNote("");
+  }
+
+  return (
+    <div className={styles.adminWorkspace}>
+      <header className={styles.adminEditorHeader}>
+        <div><span>PROMPT REGISTRY</span><h1>AI 프롬프트</h1><p>새 버전을 저장하고 검토한 뒤 실제 생성에 사용할 버전을 선택합니다.</p></div>
+        <div className={styles.adminPromptTypeTabs}>
+          {[["GENERATION", "생성"], ["VALIDATION", "검증"]].map(([value, label]) => (
+            <button key={value} type="button" className={promptType === value ? styles.adminPromptTypeActive : ""} onClick={() => changeType(value)}>{label}</button>
+          ))}
+        </div>
+      </header>
+      {error && <div className={styles.adminError}>{error}</div>}
+      <div className={styles.adminPromptSummary}>
+        <div><span>현재 활성 버전</span><strong>{active ? `v${active.versionNumber}` : "없음"}</strong></div>
+        <div><span>등록된 버전</span><strong>{promptPage?.page?.totalElements || 0}</strong></div>
+        <div><span>최근 활성화</span><strong>{active?.lastActivatedAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium" }).format(new Date(active.lastActivatedAt)) : "-"}</strong></div>
+      </div>
+
+      <div className={styles.adminPromptLayout}>
+        <form className={styles.adminPromptEditor} onSubmit={saveVersion}>
+          <div className={styles.adminSectionHeading}><div><span>NEW IMMUTABLE VERSION</span><h2>새 버전 작성</h2></div><small>저장만으로는 활성화되지 않습니다.</small></div>
+          <label>프롬프트 내용<textarea rows="22" value={content} onChange={(event) => setContent(event.target.value)} maxLength={20000} required /></label>
+          <label>변경 사유<input value={changeNote} onChange={(event) => setChangeNote(event.target.value)} maxLength={300} placeholder="무엇을 왜 변경했는지 남겨 주세요." required /></label>
+          <div className={styles.adminPromptEditorFooter}><span>{content.length.toLocaleString()} / 20,000자</span><button className={styles.primaryButton} type="submit" disabled={actionLoading === "prompt-create"}><FileText size={15} /> {actionLoading === "prompt-create" ? "저장 중..." : "새 버전 저장"}</button></div>
+        </form>
+
+        <section className={styles.adminPromptVersions}>
+          <div className={styles.adminSectionHeading}><div><span>VERSION HISTORY</span><h2>버전 목록</h2></div></div>
+          {loading && !versions.length ? <div className={styles.adminEmpty}>버전 목록을 불러오는 중...</div> : versions.length ? versions.map((version) => (
+            <article key={version.promptTemplateId} className={version.status === "ACTIVE" ? styles.adminPromptVersionActive : ""}>
+              <header><div><strong>v{version.versionNumber}</strong><span className={`${styles.adminStatus} ${styles[`adminPromptStatus${version.status}`] || ""}`}>{version.status}</span></div><time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(version.createdAt))}</time></header>
+              <p>{version.changeNote}</p>
+              <small>{version.createdByName} · {version.contentHash.slice(0, 10)}</small>
+              <div className={styles.adminPromptVersionActions}>
+                <button type="button" onClick={() => setContent(version.content)}><Copy size={14} /> 내용 불러오기</button>
+                {version.status !== "ACTIVE" && <button type="button" onClick={() => activateVersion(version)} disabled={actionLoading === `prompt-activate-${version.promptTemplateId}`}>
+                  {version.status === "ARCHIVED" ? <RotateCcw size={14} /> : <CheckCircle2 size={14} />}
+                  {version.status === "ARCHIVED" ? "이 버전으로 되돌리기" : "활성화"}
+                </button>}
+              </div>
+            </article>
+          )) : <div className={styles.adminEmpty}>등록된 프롬프트 버전이 없습니다.</div>}
+          <AdminPagination pagination={promptPage?.page} onPageChange={(page) => onLoad(promptType, page)} />
+        </section>
+      </div>
+
+      <section className={styles.adminPromptActivations}>
+        <div className={styles.adminSectionHeading}><div><span>ACTIVATION LOG</span><h2>활성화 이력</h2></div></div>
+        <div>{(promptPage?.recentActivations || []).map((activation) => <p key={activation.activationId}><History size={14} /><strong>v{activation.versionNumber}</strong><span>{activation.activatedByName}</span><time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(activation.activatedAt))}</time></p>)}</div>
+      </section>
+    </div>
+  );
+}
+
 function AdminQuizHub({
-  currentUser, quizPage, generationPage, generationDetail, userPage, loading, actionLoading, error,
+  currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
-  onLoadGeneration, onUpdateRole, onRefresh, onQuizPageChange,
+  onLoadGeneration, onUpdateRole, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
   onGenerationPageChange, onUserPageChange,
 }) {
   const quizzes = quizPage?.page?.items || [];
@@ -1372,6 +1471,7 @@ function AdminQuizHub({
 
   const sectionItems = [
     ["operations", Sparkles, "생성 운영"],
+    ["prompts", FileText, "프롬프트"],
     ["editor", NotebookPen, "수동 편집"],
     ["access", ShieldCheck, "권한 관리"],
   ];
@@ -1432,7 +1532,7 @@ function AdminQuizHub({
                   <button className={styles.adminLogMain} type="button" onClick={() => onLoadGeneration(log.generationLogId)}>
                     <span className={`${styles.adminStatus} ${styles[`adminStatus${displayStatus}`] || ""}`}>{displayStatus}</span>
                     <strong>{log.targetDate}</strong>
-                    <small>{log.aiModel} · {log.attemptCount}회 시도</small>
+                    <small>{log.aiModel} · {log.promptVersion || "프롬프트 미기록"} · {log.attemptCount}회 시도</small>
                     <b>{log.validationScore == null ? "-" : `${log.validationScore}점`}</b>
                   </button>
                   <div className={styles.adminLogActions}>
@@ -1456,6 +1556,16 @@ function AdminQuizHub({
             </div>
           </section>}
         </div>
+      ) : section === "prompts" ? (
+        <AdminPromptPanel
+          promptPage={promptPage}
+          loading={loading}
+          actionLoading={actionLoading}
+          error={error}
+          onLoad={onLoadPrompts}
+          onCreate={onCreatePrompt}
+          onActivate={onActivatePrompt}
+        />
       ) : section === "access" ? (
         <div className={styles.adminWorkspace}>
           <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>관리자 권한 변경은 다음 로그인부터 세션에 반영됩니다.</p></div></header>
@@ -1648,6 +1758,11 @@ export default function TriReadApp() {
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
   const [adminUserPage, setAdminUserPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
+  });
+  const [adminPromptPage, setAdminPromptPage] = useState({
+    page: { items: [], page: 0, size: 8, totalElements: 0, totalPages: 0 },
+    active: null,
+    recentActivations: [],
   });
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
@@ -1867,6 +1982,33 @@ export default function TriReadApp() {
       return response;
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
+  }
+  async function loadAdminPrompts(promptType = "GENERATION", page = 0) {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const response = await apiFetch(`/api/admin/prompts?type=${promptType}&page=${page}&size=8`);
+      setAdminPromptPage(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function createAdminPrompt(payload) {
+    setAdminActionLoading("prompt-create"); setAdminError("");
+    try {
+      await apiFetch("/api/admin/prompts", { method: "POST", body: JSON.stringify(payload) });
+      await loadAdminPrompts(payload.promptType, 0);
+    } catch (error) {
+      setAdminError(getErrorMessage(error));
+      throw error;
+    } finally { setAdminActionLoading(""); }
+  }
+  async function activateAdminPrompt(promptTemplateId, promptType, page) {
+    setAdminActionLoading(`prompt-activate-${promptTemplateId}`); setAdminError("");
+    try {
+      await apiFetch(`/api/admin/prompts/${promptTemplateId}/activate`, { method: "POST" });
+      await loadAdminPrompts(promptType, page);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
   }
   async function loadAdminConsole(pages = {}) {
     const quizIndex = Number.isInteger(pages.quiz) ? pages.quiz : adminQuizPage.page.page;
@@ -2131,6 +2273,7 @@ export default function TriReadApp() {
           generationPage={adminGenerationPage}
           generationDetail={adminGenerationDetail}
           userPage={adminUserPage}
+          promptPage={adminPromptPage}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2143,6 +2286,9 @@ export default function TriReadApp() {
           onRetry={retryAdminGeneration}
           onLoadGeneration={loadAdminGeneration}
           onUpdateRole={updateAdminRole}
+          onLoadPrompts={loadAdminPrompts}
+          onCreatePrompt={createAdminPrompt}
+          onActivatePrompt={activateAdminPrompt}
           onRefresh={loadAdminConsole}
           onQuizPageChange={loadAdminQuizzes}
           onGenerationPageChange={loadAdminGenerationPage}
