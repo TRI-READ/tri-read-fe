@@ -31,6 +31,9 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Power,
+  UserCog,
+  UserMinus,
   UserPlus,
   UsersRound,
   X,
@@ -107,7 +110,7 @@ function getErrorMessage(error) {
     INVALID_REVIEW_STATUS: "복습 상태를 변경하지 못했어요.",
     INVALID_APP_ROLE: "사용자 권한을 다시 확인해 주세요.",
     CANNOT_DEMOTE_SELF: "현재 로그인한 관리자는 직접 권한을 내릴 수 없어요.",
-    LAST_ADMIN_REQUIRED: "관리자는 최소 한 명 필요해요.",
+    LAST_ADMIN_REQUIRED: "활성 관리자 계정은 최소 1개가 필요해요.",
     USER_NOT_FOUND: "사용자를 찾을 수 없어요.",
     APP_ROLE_UPDATE_FAILED: "사용자 권한을 변경하지 못했어요.",
     QUIZ_DATE_INVENTORY_FULL: "선택한 날짜에는 이미 퀴즈 3세트가 준비되어 있어요.",
@@ -119,6 +122,19 @@ function getErrorMessage(error) {
     GEMINI_UNAVAILABLE: "Gemini가 일시적으로 응답하지 않아요.",
     QUIZ_GENERATION_API_DAILY_LIMIT_REACHED: "오늘 설정한 Gemini 호출 한도를 모두 사용했어요.",
     TOO_MANY_LOGIN_ATTEMPTS: "로그인 시도가 너무 많아요. 10분 뒤 다시 시도해 주세요.",
+    CURRENT_PIN_INCORRECT: "현재 PIN이 올바르지 않아요.",
+    PIN_REUSE_NOT_ALLOWED: "새 PIN은 현재 PIN과 달라야 해요.",
+    PIN_CHANGE_FAILED: "PIN을 변경하지 못했어요. 다시 시도해 주세요.",
+    USER_DISABLED: "사용이 중지된 계정이에요.",
+    CANNOT_DISABLE_SELF: "현재 로그인한 관리자 계정은 중지할 수 없어요.",
+    USER_STATUS_UPDATE_FAILED: "계정 상태를 변경하지 못했어요.",
+    PIN_RESET_FAILED: "PIN을 초기화하지 못했어요.",
+    GROUP_INVITE_NOT_FOUND: "초대 코드를 찾을 수 없어요.",
+    GROUP_MEMBER_NOT_FOUND: "그룹 멤버를 찾을 수 없어요.",
+    OWNER_CANNOT_BE_REMOVED: "그룹 소유자는 바로 제외할 수 없어요. 먼저 소유권을 넘겨 주세요.",
+    ALREADY_GROUP_OWNER: "이미 그룹 소유자인 사용자예요.",
+    GROUP_OWNER_TRANSFER_FAILED: "그룹 소유권을 이전하지 못했어요.",
+    INVALID_INVITE_POLICY: "초대 기간과 사용 횟수를 다시 확인해 주세요.",
   };
   return messages[error.code] || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
 }
@@ -785,6 +801,91 @@ function GroupActionDialog({ mode, onClose, onSubmit, submitting, error }) {
   );
 }
 
+function AccountPinDialog({ open, onClose, onChanged }) {
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+      setError("");
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  async function submit(event) {
+    event.preventDefault();
+    if (newPin !== confirmPin) {
+      setError("새 PIN 확인이 일치하지 않아요.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch("/api/auth/pin", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+      onChanged();
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="pin-dialog-title">
+        <header>
+          <div><p className={styles.eyebrow}>ACCOUNT SECURITY</p><h2 id="pin-dialog-title">PIN 변경</h2></div>
+          <button className={styles.iconButton} type="button" onClick={onClose} aria-label="닫기" title="닫기"><X size={18} /></button>
+        </header>
+        <form className={styles.groupForm} onSubmit={submit}>
+          <label>현재 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={currentPin} onChange={(event) => setCurrentPin(event.target.value)} autoComplete="current-password" required autoFocus /></label>
+          <label>새 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={newPin} onChange={(event) => setNewPin(event.target.value)} autoComplete="new-password" required /></label>
+          <label>새 PIN 확인<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value)} autoComplete="new-password" required /></label>
+          <p className={styles.formHint}>변경 후 모든 기기에서 로그아웃됩니다.</p>
+          {error && <p className={styles.formError}>{error}</p>}
+          <button className={styles.primaryButton} type="submit" disabled={submitting}>{submitting ? "변경 중..." : "PIN 변경"}<KeyRound size={17} /></button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function InvitePolicyDialog({ open, submitting, error, onClose, onSubmit }) {
+  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [maxUses, setMaxUses] = useState(20);
+  const [revokeExisting, setRevokeExisting] = useState(true);
+
+  if (!open) return null;
+
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title">
+        <header>
+          <div><p className={styles.eyebrow}>INVITE POLICY</p><h2 id="invite-dialog-title">새 초대 코드</h2></div>
+          <button className={styles.iconButton} type="button" onClick={onClose} aria-label="닫기" title="닫기"><X size={18} /></button>
+        </header>
+        <form className={styles.groupForm} onSubmit={(event) => { event.preventDefault(); onSubmit({ expiresInDays: Number(expiresInDays), maxUses: Number(maxUses), revokeExisting }); }}>
+          <label>유효 기간<input type="number" min="1" max="30" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} required /><small>1일에서 30일까지</small></label>
+          <label>최대 사용 횟수<input type="number" min="1" max="100" value={maxUses} onChange={(event) => setMaxUses(event.target.value)} required /><small>1회에서 100회까지</small></label>
+          <label className={styles.checkboxLabel}><input type="checkbox" checked={revokeExisting} onChange={(event) => setRevokeExisting(event.target.checked)} /> 기존 초대 코드 모두 폐기</label>
+          {error && <p className={styles.formError}>{error}</p>}
+          <button className={styles.primaryButton} type="submit" disabled={submitting}>{submitting ? "발급 중..." : "코드 발급"}<KeyRound size={17} /></button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function GroupHub({
   groups,
   selectedGroup,
@@ -792,6 +893,7 @@ function GroupHub({
   loading,
   error,
   latestInviteCode,
+  invites,
   actionMode,
   actionSubmitting,
   actionError,
@@ -799,9 +901,13 @@ function GroupHub({
   onActionSubmit,
   onSelectGroup,
   onRenewInvite,
+  onRevokeInvite,
+  onRemoveMember,
+  onTransferOwnership,
   onReload,
 }) {
   const [copied, setCopied] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   async function copyInviteCode() {
     if (!latestInviteCode) {
@@ -898,10 +1004,27 @@ function GroupHub({
                       {copied ? <Check size={18} /> : <Copy size={18} />}
                     </button>
                   )}
-                  <button className={styles.secondaryButton} type="button" onClick={onRenewInvite}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => setInviteDialogOpen(true)}>
                     <RefreshCw size={16} />
                     새 코드 발급
                   </button>
+                </div>
+              </section>
+            )}
+
+            {selectedGroup.role === "OWNER" && invites.length > 0 && (
+              <section className={styles.inviteListSection}>
+                <div className={styles.sectionHeading}><div><span>INVITES</span><h2>초대 코드 현황</h2></div><strong>{invites.filter((invite) => invite.enabled).length}개 사용 가능</strong></div>
+                <div className={styles.inviteList}>
+                  {invites.map((invite) => {
+                    const expired = new Date(invite.expiresAt) <= new Date();
+                    const usable = invite.enabled && !expired && invite.usedCount < invite.maxUses;
+                    return <article key={invite.inviteId}>
+                      <span className={usable ? styles.inviteEnabled : styles.inviteDisabled}>{usable ? "사용 가능" : "종료"}</span>
+                      <div><strong>초대 #{invite.inviteId}</strong><small>{invite.usedCount}/{invite.maxUses}회 사용 · {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(invite.expiresAt))} 만료</small></div>
+                      {invite.enabled && <button className={styles.dangerTextButton} type="button" onClick={() => onRevokeInvite(invite.inviteId)}><X size={15} /> 폐기</button>}
+                    </article>;
+                  })}
                 </div>
               </section>
             )}
@@ -957,7 +1080,12 @@ function GroupHub({
                       <strong>{member.displayName}</strong>
                       <small>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium" }).format(new Date(member.joinedAt))} 참여</small>
                     </div>
-                    <span>{member.role === "OWNER" ? "OWNER" : "MEMBER"}</span>
+                    {member.role === "OWNER" ? <span>OWNER</span> : selectedGroup.role === "OWNER" ? (
+                      <div className={styles.memberActions}>
+                        <button type="button" onClick={() => onTransferOwnership(member)} title="소유권 이전"><Crown size={15} /> 소유권 이전</button>
+                        <button type="button" onClick={() => onRemoveMember(member)} title="그룹에서 제외"><UserMinus size={15} /> 제외</button>
+                      </div>
+                    ) : <span>MEMBER</span>}
                   </div>
                 ))}
               </div>
@@ -988,6 +1116,16 @@ function GroupHub({
         onSubmit={onActionSubmit}
         submitting={actionSubmitting}
         error={actionError}
+      />
+      <InvitePolicyDialog
+        open={inviteDialogOpen}
+        submitting={actionSubmitting}
+        error={actionError}
+        onClose={() => setInviteDialogOpen(false)}
+        onSubmit={async (policy) => {
+          const created = await onRenewInvite(policy);
+          if (created) setInviteDialogOpen(false);
+        }}
       />
     </section>
   );
@@ -1193,7 +1331,7 @@ function ReviewHub({
   );
 }
 
-function AppHeader({ user, streak, view, onLogout, loggingOut }) {
+function AppHeader({ user, streak, view, onAccountOpen, onLogout, loggingOut }) {
   return (
     <header className={styles.appHeader}>
       <Brand />
@@ -1245,10 +1383,11 @@ function AppHeader({ user, streak, view, onLogout, loggingOut }) {
           <strong>{streak.currentStreak}</strong>
           <small>일 연속</small>
         </span>
-        <span className={styles.userBadge}>
+        <button className={styles.userBadge} type="button" onClick={onAccountOpen} title="계정 보안 설정">
           <CircleUserRound size={18} />
           {user.displayName}
-        </span>
+          <UserCog size={14} />
+        </button>
         <button
           className={styles.iconButton}
           type="button"
@@ -1415,7 +1554,7 @@ function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
   generationFilters, loginLocks, auditPage,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
-  onLoadGeneration, onUpdateRole, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
+  onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
   onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin,
 }) {
   const quizzes = quizPage?.page?.items || [];
@@ -1610,16 +1749,20 @@ function AdminQuizHub({
         />
       ) : section === "access" ? (
         <div className={styles.adminWorkspace}>
-          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>관리자 권한 변경은 다음 로그인부터 세션에 반영됩니다.</p></div></header>
+          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>권한·상태·PIN 변경 시 해당 사용자의 기존 로그인은 즉시 종료됩니다.</p></div></header>
           {error && <div className={styles.adminError}>{error}</div>}
           <div className={styles.adminUserTable}>
-            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span></div>
+            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span><span>계정 관리</span></div>
             {users.map((account) => <article key={account.userId}>
               <div><strong>{account.displayName}</strong><small>@{account.loginName}{account.userId === currentUser.userId ? " · 현재 계정" : ""}</small></div>
               <time>{account.lastLoginAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(account.lastLoginAt)) : "로그인 기록 없음"}</time>
               <select value={account.role} disabled={!account.enabled || actionLoading === `role-${account.userId}` || account.userId === currentUser.userId} onChange={(event) => onUpdateRole(account.userId, event.target.value)} aria-label={`${account.displayName} 권한`}>
                 <option value="USER">사용자</option><option value="ADMIN">관리자</option>
               </select>
+              <div className={styles.adminAccountActions}>
+                <button type="button" onClick={() => onResetPin(account)} disabled={!account.enabled || Boolean(actionLoading)} title="PIN 초기화"><KeyRound size={14} /></button>
+                <button type="button" onClick={() => onUpdateEnabled(account.userId, !account.enabled)} disabled={account.userId === currentUser.userId || Boolean(actionLoading)} className={account.enabled ? styles.adminDisableButton : styles.adminEnableButton} title={account.enabled ? "계정 중지" : "계정 활성화"}><Power size={14} /><span>{account.enabled ? "중지" : "활성화"}</span></button>
+              </div>
             </article>)}
           </div>
           <AdminPagination pagination={userPage} onPageChange={onUserPageChange} />
@@ -1794,6 +1937,7 @@ export default function TriReadApp() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupError, setGroupError] = useState("");
@@ -1803,6 +1947,7 @@ export default function TriReadApp() {
   const [groupActionSubmitting, setGroupActionSubmitting] = useState(false);
   const [groupActionError, setGroupActionError] = useState("");
   const [latestInviteCode, setLatestInviteCode] = useState("");
+  const [groupInvites, setGroupInvites] = useState([]);
   const [reviewData, setReviewData] = useState(null);
   const [reviewFilter, setReviewFilter] = useState("OPEN");
   const [selectedReviewId, setSelectedReviewId] = useState(null);
@@ -1876,6 +2021,18 @@ export default function TriReadApp() {
     }
   }
 
+  async function loadGroupDetail(groupId) {
+    const [detail, activity] = await Promise.all([
+      apiFetch(`/api/groups/${groupId}`),
+      apiFetch(`/api/groups/${groupId}/activity`),
+    ]);
+    const invites = detail.role === "OWNER" ? await apiFetch(`/api/groups/${groupId}/invites`) : [];
+    setSelectedGroup(detail);
+    setGroupActivity(activity);
+    setGroupInvites(invites);
+    return detail;
+  }
+
   async function loadGroups(preferredGroupId = null) {
     setGroupsLoading(true);
     setGroupError("");
@@ -1884,15 +2041,11 @@ export default function TriReadApp() {
       setGroups(myGroups);
       const groupId = preferredGroupId || selectedGroup?.groupId || myGroups[0]?.groupId;
       if (groupId) {
-        const [detail, activity] = await Promise.all([
-          apiFetch(`/api/groups/${groupId}`),
-          apiFetch(`/api/groups/${groupId}/activity`),
-        ]);
-        setSelectedGroup(detail);
-        setGroupActivity(activity);
+        await loadGroupDetail(groupId);
       } else {
         setSelectedGroup(null);
         setGroupActivity(null);
+        setGroupInvites([]);
       }
     } catch (error) {
       setGroupError(getErrorMessage(error));
@@ -1906,12 +2059,7 @@ export default function TriReadApp() {
     setGroupError("");
     setLatestInviteCode("");
     try {
-      const [detail, activity] = await Promise.all([
-        apiFetch(`/api/groups/${groupId}`),
-        apiFetch(`/api/groups/${groupId}/activity`),
-      ]);
-      setSelectedGroup(detail);
-      setGroupActivity(activity);
+      await loadGroupDetail(groupId);
     } catch (error) {
       setGroupError(getErrorMessage(error));
     } finally {
@@ -1928,9 +2076,8 @@ export default function TriReadApp() {
         body: JSON.stringify(payload),
       });
       const detail = groupAction === "create" ? response.group : response;
-      setSelectedGroup(detail);
-      setGroupActivity(await apiFetch(`/api/groups/${detail.groupId}/activity`));
       setLatestInviteCode(groupAction === "create" ? response.inviteCode : "");
+      await loadGroupDetail(detail.groupId);
       setGroupAction(null);
       const myGroups = await apiFetch("/api/groups/my");
       setGroups(myGroups);
@@ -1941,19 +2088,54 @@ export default function TriReadApp() {
     }
   }
 
-  async function handleRenewInvite() {
+  async function handleRenewInvite(policy) {
     if (!selectedGroup) {
       return;
     }
-    setGroupError("");
+    setGroupActionSubmitting(true);
+    setGroupActionError("");
     try {
       const response = await apiFetch(`/api/groups/${selectedGroup.groupId}/invites`, {
         method: "POST",
+        body: JSON.stringify(policy),
       });
       setLatestInviteCode(response.inviteCode);
+      setGroupInvites((current) => [response.invite, ...current.map((invite) => policy.revokeExisting ? { ...invite, enabled: false } : invite)]);
+      return true;
     } catch (error) {
-      setGroupError(getErrorMessage(error));
+      setGroupActionError(getErrorMessage(error));
+      return false;
+    } finally {
+      setGroupActionSubmitting(false);
     }
+  }
+
+  async function handleRevokeInvite(inviteId) {
+    if (!selectedGroup || !window.confirm("이 초대 코드를 폐기할까요?")) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/invites/${inviteId}`, { method: "DELETE" });
+      setGroupInvites((current) => current.map((invite) => invite.inviteId === inviteId ? { ...invite, enabled: false } : invite));
+    } catch (error) { setGroupError(getErrorMessage(error)); }
+  }
+
+  async function handleRemoveMember(member) {
+    if (!selectedGroup || !window.confirm(`${member.displayName} 님을 그룹에서 제외할까요?`)) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/members/${member.userId}`, { method: "DELETE" });
+      await loadGroups(selectedGroup.groupId);
+    } catch (error) { setGroupError(getErrorMessage(error)); }
+  }
+
+  async function handleTransferOwnership(member) {
+    if (!selectedGroup || !window.confirm(`${member.displayName} 님에게 소유권을 이전할까요? 이전 후에는 일반 멤버가 됩니다.`)) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/owner`, { method: "PATCH", body: JSON.stringify({ newOwnerUserId: member.userId }) });
+      setLatestInviteCode("");
+      await loadGroups(selectedGroup.groupId);
+    } catch (error) { setGroupError(getErrorMessage(error)); }
   }
 
   async function loadReviews(filter = reviewFilter, preferredReviewId = null) {
@@ -2187,6 +2369,27 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminActionLoading(""); }
   }
+  async function updateAdminEnabled(userId, enabled) {
+    const actionLabel = enabled ? "활성화" : "중지";
+    if (!window.confirm(`이 계정을 ${actionLabel}할까요? 기존 로그인은 종료됩니다.`)) return;
+    setAdminActionLoading(`enabled-${userId}`); setAdminError("");
+    try {
+      const updated = await apiFetch(`/api/admin/users/${userId}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) });
+      setAdminUserPage((current) => ({ ...current, items: current.items.map((account) => account.userId === userId ? updated : account) }));
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
+  async function resetAdminPin(account) {
+    const newPin = window.prompt(`${account.displayName} 님의 새 PIN(숫자 4~12자리)을 입력하세요.`);
+    if (newPin === null) return;
+    if (!/^\d{4,12}$/.test(newPin)) { setAdminError("PIN은 숫자 4~12자리로 입력해 주세요."); return; }
+    if (!window.confirm("PIN을 초기화하고 해당 사용자의 기존 로그인을 종료할까요?")) return;
+    setAdminActionLoading(`pin-${account.userId}`); setAdminError("");
+    try {
+      await apiFetch(`/api/admin/users/${account.userId}/pin`, { method: "PATCH", body: JSON.stringify({ newPin }) });
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
   async function createAdminQuiz(draft) {
     setAdminError("");
     try { await apiFetch("/api/admin/quizzes", { method: "POST", body: JSON.stringify(draft) }); await loadAdminQuizzes(0); }
@@ -2278,12 +2481,19 @@ export default function TriReadApp() {
       setGroups([]);
       setSelectedGroup(null);
       setGroupActivity(null);
+      setGroupInvites([]);
       setLatestInviteCode("");
       setReviewData(null);
       setSelectedReviewId(null);
       setOrbitData(null);
       setLoggingOut(false);
     }
+  }
+
+  async function handlePinChanged() {
+    setAccountDialogOpen(false);
+    window.alert("PIN이 변경되었습니다. 새 PIN으로 다시 로그인해 주세요.");
+    try { await handleLogout(); } catch { /* PIN 변경으로 이미 만료된 세션입니다. */ }
   }
 
   function handleSelect(questionId, optionId) {
@@ -2342,6 +2552,7 @@ export default function TriReadApp() {
         user={user}
         streak={streak}
         view={view}
+        onAccountOpen={() => setAccountDialogOpen(true)}
         onLogout={handleLogout}
         loggingOut={loggingOut}
       />
@@ -2354,6 +2565,7 @@ export default function TriReadApp() {
           loading={groupsLoading}
           error={groupError}
           latestInviteCode={latestInviteCode}
+          invites={groupInvites}
           actionMode={groupAction}
           actionSubmitting={groupActionSubmitting}
           actionError={groupActionError}
@@ -2364,6 +2576,9 @@ export default function TriReadApp() {
           onActionSubmit={handleGroupAction}
           onSelectGroup={handleSelectGroup}
           onRenewInvite={handleRenewInvite}
+          onRevokeInvite={handleRevokeInvite}
+          onRemoveMember={handleRemoveMember}
+          onTransferOwnership={handleTransferOwnership}
           onReload={() => loadGroups()}
         />
       ) : view === "orbit" ? (
@@ -2399,6 +2614,8 @@ export default function TriReadApp() {
           onRetry={retryAdminGeneration}
           onLoadGeneration={loadAdminGeneration}
           onUpdateRole={updateAdminRole}
+          onUpdateEnabled={updateAdminEnabled}
+          onResetPin={resetAdminPin}
           onLoadPrompts={loadAdminPrompts}
           onCreatePrompt={createAdminPrompt}
           onActivatePrompt={activateAdminPrompt}
@@ -2468,6 +2685,7 @@ export default function TriReadApp() {
       ) : (
         <EmptyQuiz message={quizError} onRetry={loadQuiz} />
       )}
+      <AccountPinDialog open={accountDialogOpen} onClose={() => setAccountDialogOpen(false)} onChanged={handlePinChanged} />
     </main>
   );
 }
