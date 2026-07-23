@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -13,8 +14,11 @@ import {
   Copy,
   Crown,
   Clock3,
+  Database,
+  ExternalLink,
   Flame,
   FileText,
+  Gauge,
   History,
   KeyRound,
   Landmark,
@@ -29,8 +33,12 @@ import {
   Rocket,
   Scale,
   Send,
+  Server,
   ShieldCheck,
   Sparkles,
+  Power,
+  UserCog,
+  UserMinus,
   UserPlus,
   UsersRound,
   X,
@@ -86,6 +94,28 @@ function formatToday() {
   }).format(new Date());
 }
 
+function formatDateTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatDuration(seconds = 0) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days) return `${days}일 ${hours}시간`;
+  if (hours) return `${hours}시간 ${minutes}분`;
+  return `${minutes}분`;
+}
+
+function formatBytes(bytes = 0) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(bytes > 1024 ** 3 ? 0 : 1)} MB`;
+}
+
 function getErrorMessage(error) {
   if (!(error instanceof ApiError)) {
     return "잠시 문제가 생겼어요. 다시 시도해 주세요.";
@@ -107,7 +137,7 @@ function getErrorMessage(error) {
     INVALID_REVIEW_STATUS: "복습 상태를 변경하지 못했어요.",
     INVALID_APP_ROLE: "사용자 권한을 다시 확인해 주세요.",
     CANNOT_DEMOTE_SELF: "현재 로그인한 관리자는 직접 권한을 내릴 수 없어요.",
-    LAST_ADMIN_REQUIRED: "관리자는 최소 한 명 필요해요.",
+    LAST_ADMIN_REQUIRED: "활성 관리자 계정은 최소 1개가 필요해요.",
     USER_NOT_FOUND: "사용자를 찾을 수 없어요.",
     APP_ROLE_UPDATE_FAILED: "사용자 권한을 변경하지 못했어요.",
     QUIZ_DATE_INVENTORY_FULL: "선택한 날짜에는 이미 퀴즈 3세트가 준비되어 있어요.",
@@ -119,6 +149,19 @@ function getErrorMessage(error) {
     GEMINI_UNAVAILABLE: "Gemini가 일시적으로 응답하지 않아요.",
     QUIZ_GENERATION_API_DAILY_LIMIT_REACHED: "오늘 설정한 Gemini 호출 한도를 모두 사용했어요.",
     TOO_MANY_LOGIN_ATTEMPTS: "로그인 시도가 너무 많아요. 10분 뒤 다시 시도해 주세요.",
+    CURRENT_PIN_INCORRECT: "현재 PIN이 올바르지 않아요.",
+    PIN_REUSE_NOT_ALLOWED: "새 PIN은 현재 PIN과 달라야 해요.",
+    PIN_CHANGE_FAILED: "PIN을 변경하지 못했어요. 다시 시도해 주세요.",
+    USER_DISABLED: "사용이 중지된 계정이에요.",
+    CANNOT_DISABLE_SELF: "현재 로그인한 관리자 계정은 중지할 수 없어요.",
+    USER_STATUS_UPDATE_FAILED: "계정 상태를 변경하지 못했어요.",
+    PIN_RESET_FAILED: "PIN을 초기화하지 못했어요.",
+    GROUP_INVITE_NOT_FOUND: "초대 코드를 찾을 수 없어요.",
+    GROUP_MEMBER_NOT_FOUND: "그룹 멤버를 찾을 수 없어요.",
+    OWNER_CANNOT_BE_REMOVED: "그룹 소유자는 바로 제외할 수 없어요. 먼저 소유권을 넘겨 주세요.",
+    ALREADY_GROUP_OWNER: "이미 그룹 소유자인 사용자예요.",
+    GROUP_OWNER_TRANSFER_FAILED: "그룹 소유권을 이전하지 못했어요.",
+    INVALID_INVITE_POLICY: "초대 기간과 사용 횟수를 다시 확인해 주세요.",
   };
   return messages[error.code] || "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
 }
@@ -591,6 +634,27 @@ function QuizWorkspace({
         </div>
       </div>
 
+      {result && result.sources?.length > 0 && (
+        <section className={styles.quizSources}>
+          <div>
+            <p className={styles.eyebrow}>REFERENCES</p>
+            <h2>이 지문을 만들 때 참고한 자료</h2>
+            <span>문장을 그대로 옮기지 않고 핵심 사실을 바탕으로 새로 구성했어요.</span>
+          </div>
+          <ul>
+            {result.sources.map((source) => (
+              <li key={source.sourceUrl}>
+                <a href={source.sourceUrl} target="_blank" rel="noreferrer">
+                  <strong>{source.title}</strong>
+                  <span>{source.publisher}{source.publishedOn ? ` · ${source.publishedOn}` : ""}</span>
+                  <ExternalLink size={15} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {submitError && <p className={styles.submitError}>{submitError}</p>}
 
       <footer className={styles.quizFooter}>
@@ -785,6 +849,91 @@ function GroupActionDialog({ mode, onClose, onSubmit, submitting, error }) {
   );
 }
 
+function AccountPinDialog({ open, onClose, onChanged }) {
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+      setError("");
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  async function submit(event) {
+    event.preventDefault();
+    if (newPin !== confirmPin) {
+      setError("새 PIN 확인이 일치하지 않아요.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch("/api/auth/pin", {
+        method: "PATCH",
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+      onChanged();
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="pin-dialog-title">
+        <header>
+          <div><p className={styles.eyebrow}>ACCOUNT SECURITY</p><h2 id="pin-dialog-title">PIN 변경</h2></div>
+          <button className={styles.iconButton} type="button" onClick={onClose} aria-label="닫기" title="닫기"><X size={18} /></button>
+        </header>
+        <form className={styles.groupForm} onSubmit={submit}>
+          <label>현재 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={currentPin} onChange={(event) => setCurrentPin(event.target.value)} autoComplete="current-password" required autoFocus /></label>
+          <label>새 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={newPin} onChange={(event) => setNewPin(event.target.value)} autoComplete="new-password" required /></label>
+          <label>새 PIN 확인<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value)} autoComplete="new-password" required /></label>
+          <p className={styles.formHint}>변경 후 모든 기기에서 로그아웃됩니다.</p>
+          {error && <p className={styles.formError}>{error}</p>}
+          <button className={styles.primaryButton} type="submit" disabled={submitting}>{submitting ? "변경 중..." : "PIN 변경"}<KeyRound size={17} /></button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function InvitePolicyDialog({ open, submitting, error, onClose, onSubmit }) {
+  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [maxUses, setMaxUses] = useState(20);
+  const [revokeExisting, setRevokeExisting] = useState(true);
+
+  if (!open) return null;
+
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="invite-dialog-title">
+        <header>
+          <div><p className={styles.eyebrow}>INVITE POLICY</p><h2 id="invite-dialog-title">새 초대 코드</h2></div>
+          <button className={styles.iconButton} type="button" onClick={onClose} aria-label="닫기" title="닫기"><X size={18} /></button>
+        </header>
+        <form className={styles.groupForm} onSubmit={(event) => { event.preventDefault(); onSubmit({ expiresInDays: Number(expiresInDays), maxUses: Number(maxUses), revokeExisting }); }}>
+          <label>유효 기간<input type="number" min="1" max="30" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} required /><small>1일에서 30일까지</small></label>
+          <label>최대 사용 횟수<input type="number" min="1" max="100" value={maxUses} onChange={(event) => setMaxUses(event.target.value)} required /><small>1회에서 100회까지</small></label>
+          <label className={styles.checkboxLabel}><input type="checkbox" checked={revokeExisting} onChange={(event) => setRevokeExisting(event.target.checked)} /> 기존 초대 코드 모두 폐기</label>
+          {error && <p className={styles.formError}>{error}</p>}
+          <button className={styles.primaryButton} type="submit" disabled={submitting}>{submitting ? "발급 중..." : "코드 발급"}<KeyRound size={17} /></button>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function GroupHub({
   groups,
   selectedGroup,
@@ -792,6 +941,7 @@ function GroupHub({
   loading,
   error,
   latestInviteCode,
+  invites,
   actionMode,
   actionSubmitting,
   actionError,
@@ -799,9 +949,13 @@ function GroupHub({
   onActionSubmit,
   onSelectGroup,
   onRenewInvite,
+  onRevokeInvite,
+  onRemoveMember,
+  onTransferOwnership,
   onReload,
 }) {
   const [copied, setCopied] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   async function copyInviteCode() {
     if (!latestInviteCode) {
@@ -898,10 +1052,27 @@ function GroupHub({
                       {copied ? <Check size={18} /> : <Copy size={18} />}
                     </button>
                   )}
-                  <button className={styles.secondaryButton} type="button" onClick={onRenewInvite}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => setInviteDialogOpen(true)}>
                     <RefreshCw size={16} />
                     새 코드 발급
                   </button>
+                </div>
+              </section>
+            )}
+
+            {selectedGroup.role === "OWNER" && invites.length > 0 && (
+              <section className={styles.inviteListSection}>
+                <div className={styles.sectionHeading}><div><span>INVITES</span><h2>초대 코드 현황</h2></div><strong>{invites.filter((invite) => invite.enabled).length}개 사용 가능</strong></div>
+                <div className={styles.inviteList}>
+                  {invites.map((invite) => {
+                    const expired = new Date(invite.expiresAt) <= new Date();
+                    const usable = invite.enabled && !expired && invite.usedCount < invite.maxUses;
+                    return <article key={invite.inviteId}>
+                      <span className={usable ? styles.inviteEnabled : styles.inviteDisabled}>{usable ? "사용 가능" : "종료"}</span>
+                      <div><strong>초대 #{invite.inviteId}</strong><small>{invite.usedCount}/{invite.maxUses}회 사용 · {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(invite.expiresAt))} 만료</small></div>
+                      {invite.enabled && <button className={styles.dangerTextButton} type="button" onClick={() => onRevokeInvite(invite.inviteId)}><X size={15} /> 폐기</button>}
+                    </article>;
+                  })}
                 </div>
               </section>
             )}
@@ -957,7 +1128,12 @@ function GroupHub({
                       <strong>{member.displayName}</strong>
                       <small>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium" }).format(new Date(member.joinedAt))} 참여</small>
                     </div>
-                    <span>{member.role === "OWNER" ? "OWNER" : "MEMBER"}</span>
+                    {member.role === "OWNER" ? <span>OWNER</span> : selectedGroup.role === "OWNER" ? (
+                      <div className={styles.memberActions}>
+                        <button type="button" onClick={() => onTransferOwnership(member)} title="소유권 이전"><Crown size={15} /> 소유권 이전</button>
+                        <button type="button" onClick={() => onRemoveMember(member)} title="그룹에서 제외"><UserMinus size={15} /> 제외</button>
+                      </div>
+                    ) : <span>MEMBER</span>}
                   </div>
                 ))}
               </div>
@@ -988,6 +1164,16 @@ function GroupHub({
         onSubmit={onActionSubmit}
         submitting={actionSubmitting}
         error={actionError}
+      />
+      <InvitePolicyDialog
+        open={inviteDialogOpen}
+        submitting={actionSubmitting}
+        error={actionError}
+        onClose={() => setInviteDialogOpen(false)}
+        onSubmit={async (policy) => {
+          const created = await onRenewInvite(policy);
+          if (created) setInviteDialogOpen(false);
+        }}
       />
     </section>
   );
@@ -1193,7 +1379,7 @@ function ReviewHub({
   );
 }
 
-function AppHeader({ user, streak, view, onLogout, loggingOut }) {
+function AppHeader({ user, streak, view, onAccountOpen, onLogout, loggingOut }) {
   return (
     <header className={styles.appHeader}>
       <Brand />
@@ -1245,10 +1431,11 @@ function AppHeader({ user, streak, view, onLogout, loggingOut }) {
           <strong>{streak.currentStreak}</strong>
           <small>일 연속</small>
         </span>
-        <span className={styles.userBadge}>
+        <button className={styles.userBadge} type="button" onClick={onAccountOpen} title="계정 보안 설정">
           <CircleUserRound size={18} />
           {user.displayName}
-        </span>
+          <UserCog size={14} />
+        </button>
         <button
           className={styles.iconButton}
           type="button"
@@ -1411,17 +1598,128 @@ function AdminPromptPanel({ promptPage, loading, actionLoading, error, onLoad, o
   );
 }
 
+function AdminOperationsPanel({ summary, loading, error, onLoad }) {
+  const ai = summary?.aiToday || {};
+  const quality = summary?.quality || {};
+  const healthItems = [
+    ["애플리케이션", summary?.applicationStatus, Server],
+    ["PostgreSQL", summary?.databaseStatus, Database],
+    ["HTTPS", typeof window !== "undefined" && window.location.protocol === "https:" ? "UP" : "CHECK", ShieldCheck],
+  ];
+
+  return (
+    <div className={styles.adminWorkspace}>
+      <header className={styles.adminEditorHeader}>
+        <div>
+          <span>OPERATIONS</span>
+          <h1>운영 현황</h1>
+          <p>서비스 상태, 생성 품질, 퀴즈 재고와 최근 장애를 한곳에서 확인합니다.</p>
+        </div>
+        <button className={styles.adminOutlineButton} type="button" onClick={onLoad} disabled={loading}>
+          <RefreshCw size={15} /> {loading ? "확인 중" : "새로고침"}
+        </button>
+      </header>
+      {error && <div className={styles.adminError}>{error}</div>}
+      {!summary ? <div className={styles.adminEmpty}>운영 정보를 불러오는 중입니다.</div> : <>
+        <section className={styles.opsHealthGrid}>
+          {healthItems.map(([label, status, Icon]) => (
+            <article key={label}>
+              <Icon size={18} />
+              <div><span>{label}</span><strong className={status === "UP" ? styles.opsHealthy : styles.opsWarning}>{status || "UNKNOWN"}</strong></div>
+            </article>
+          ))}
+          <article><Activity size={18} /><div><span>가동 시간</span><strong>{formatDuration(summary.uptimeSeconds)}</strong></div></article>
+          <article><Gauge size={18} /><div><span>배포 버전</span><strong>{summary.version}</strong><small>{formatDateTime(summary.startedAt)} 시작</small></div></article>
+          <article><Database size={18} /><div><span>DB 크기</span><strong>{formatBytes(summary.databaseSizeBytes)}</strong></div></article>
+        </section>
+
+        <section className={styles.opsSection}>
+          <div className={styles.adminSectionHeading}><div><span>TODAY</span><h2>Gemini API</h2></div><b>평균 {Math.round(ai.averageLatencyMs || 0)}ms</b></div>
+          <div className={styles.adminMetrics}>
+            <div><span>전체 호출</span><strong>{ai.totalCount || 0}</strong></div>
+            <div><span>성공</span><strong>{ai.successCount || 0}</strong></div>
+            <div><span>실패</span><strong>{ai.failureCount || 0}</strong></div>
+            <div><span>오류 코드</span><strong>{summary.aiErrorsToday?.length || 0}<small>종</small></strong></div>
+          </div>
+          {summary.aiErrorsToday?.length > 0 && <div className={styles.opsErrorCodes}>
+            {summary.aiErrorsToday.map((item) => <span key={item.errorCode}>{item.errorCode || "UNKNOWN"} <b>{item.count}</b></span>)}
+          </div>}
+        </section>
+
+        <section className={styles.opsSection}>
+          <div className={styles.adminSectionHeading}><div><span>NEXT 7 DAYS</span><h2>퀴즈 재고</h2></div></div>
+          <div className={styles.opsInventory}>
+            {summary.inventory?.map((item) => (
+              <article key={item.challengeDate} className={item.shortage ? styles.opsInventoryShortage : ""}>
+                <time>{item.challengeDate}</time>
+                <strong>{item.publishedCount}/{item.requiredCount}</strong>
+                <span>{item.shortage ? "부족" : "준비 완료"}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <div className={styles.opsTwoColumns}>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>LAST 7 DAYS</span><h2>생성 품질</h2></div></div>
+            <dl className={styles.opsDefinitionList}>
+              <div><dt>평균 검증 점수</dt><dd>{Math.round(quality.averageValidationScore || 0)}점</dd></div>
+              <div><dt>발행 성공</dt><dd>{quality.publishedCount || 0}건</dd></div>
+              <div><dt>실패율</dt><dd>{quality.completedCount ? (quality.failedCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>재시도율</dt><dd>{quality.completedCount ? (quality.retryCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>중복 거절률</dt><dd>{quality.completedCount ? (quality.duplicateRejectedCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>근거 자료</dt><dd>{summary.groundedBriefCount}회 · {summary.groundedSourceCount}개</dd></div>
+            </dl>
+          </section>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>AUTOMATION</span><h2>스케줄러·백업</h2></div></div>
+            <dl className={styles.opsDefinitionList}>
+              <div><dt>최근 생성</dt><dd>{summary.lastSchedulerRun?.status || "기록 없음"}</dd></div>
+              <div><dt>생성 완료</dt><dd>{formatDateTime(summary.lastSchedulerRun?.completedAt)}</dd></div>
+              <div><dt>다음 생성</dt><dd>{formatDateTime(summary.nextSchedulerRun)}</dd></div>
+              <div><dt>최근 DB 백업</dt><dd>{summary.lastBackupRun?.status || "기록 없음"}</dd></div>
+              <div><dt>백업 완료</dt><dd>{formatDateTime(summary.lastBackupRun?.completedAt)}</dd></div>
+              <div><dt>로그인 잠금</dt><dd>{summary.activeLoginLocks}건</dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div className={styles.opsTwoColumns}>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>FAILURES</span><h2>최근 생성 실패</h2></div></div>
+            {summary.recentFailures?.length ? <div className={styles.opsRows}>
+              {summary.recentFailures.map((failure) => <article key={failure.generationLogId}>
+                <div><strong>#{failure.generationLogId} · {failure.targetDate}</strong><span>{failure.errorMessage || failure.status}</span></div>
+                <time>{formatDateTime(failure.updatedAt)}</time>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>최근 실패가 없습니다.</div>}
+          </section>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>AUDIT</span><h2>최근 관리자 작업</h2></div></div>
+            {summary.recentAdminActions?.length ? <div className={styles.opsRows}>
+              {summary.recentAdminActions.map((audit) => <article key={audit.auditLogId}>
+                <div><strong>{audit.action}</strong><span>@{audit.actorLoginName || "system"} · {audit.targetType}</span></div>
+                <time>{formatDateTime(audit.createdAt)}</time>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>최근 관리자 작업이 없습니다.</div>}
+          </section>
+        </div>
+      </>}
+    </div>
+  );
+}
+
 function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
-  generationFilters, loginLocks, auditPage,
+  generationFilters, loginLocks, auditPage, operationsSummary,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
-  onLoadGeneration, onUpdateRole, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin,
+  onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
+  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations,
 }) {
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
   const users = userPage?.items || [];
-  const [section, setSection] = useState("operations");
+  const [section, setSection] = useState("overview");
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1432,6 +1730,7 @@ function AdminQuizHub({
 
   useEffect(() => {
     if (section === "security") onLoadSecurity(auditPage?.page || 0);
+    if (section === "overview") onLoadOperations();
   }, [section]);
 
   useEffect(() => {
@@ -1485,7 +1784,8 @@ function AdminQuizHub({
   }
 
   const sectionItems = [
-    ["operations", Sparkles, "생성 운영"],
+    ["overview", Activity, "운영 현황"],
+    ["operations", Sparkles, "퀴즈 생성"],
     ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
     ["access", ShieldCheck, "권한 관리"],
@@ -1524,7 +1824,14 @@ function AdminQuizHub({
         </button>
       </aside>
 
-      {section === "operations" ? (
+      {section === "overview" ? (
+        <AdminOperationsPanel
+          summary={operationsSummary}
+          loading={loading}
+          error={error}
+          onLoad={onLoadOperations}
+        />
+      ) : section === "operations" ? (
         <div className={styles.adminWorkspace}>
           <header className={styles.adminEditorHeader}>
             <div><span>AI PIPELINE</span><h1>퀴즈 생성 운영</h1><p>Gemini 생성, 자동 검증, 편집과 발행 상태를 확인합니다.</p></div>
@@ -1590,6 +1897,19 @@ function AdminQuizHub({
           {generationDetail && <section className={styles.adminValidationPanel}>
             <header><div><span>GENERATION #{generationDetail.log.generationLogId}</span><h2>검증 상세</h2></div><button type="button" onClick={() => onLoadGeneration(null)} aria-label="검증 상세 닫기" title="닫기"><X size={17} /></button></header>
             {generationDetail.log.errorMessage && <p className={styles.adminFailureReason}>{generationDetail.log.errorMessage}</p>}
+            {generationDetail.sources?.length > 0 && <section className={styles.adminSourceReview}>
+              <div className={styles.adminSectionHeading}><div><span>GROUNDING</span><h2>지문 생성 참고 자료</h2></div><b>{generationDetail.sources.length}개</b></div>
+              <div>
+                {generationDetail.sources.map((source) => <article key={`${source.passagePosition}-${source.contentSourceId}`}>
+                  <span>지문 {source.passagePosition}</span>
+                  <a href={source.sourceUrl} target="_blank" rel="noreferrer">
+                    <strong>{source.title}</strong>
+                    <small>{source.publisher}{source.publishedOn ? ` · ${source.publishedOn}` : ""}</small>
+                    <ExternalLink size={14} />
+                  </a>
+                </article>)}
+              </div>
+            </section>}
             <div className={styles.adminValidationList}>
               {generationDetail.validations.map((validation) => <article key={validation.validationResultId}>
                 <div><strong>{ADMIN_VALIDATION_LABELS[validation.validationType] || validation.validationType}</strong><span>{validation.attemptNumber}차 · {validation.score}점 · {validation.passed ? "통과" : "실패"}</span></div>
@@ -1610,16 +1930,20 @@ function AdminQuizHub({
         />
       ) : section === "access" ? (
         <div className={styles.adminWorkspace}>
-          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>관리자 권한 변경은 다음 로그인부터 세션에 반영됩니다.</p></div></header>
+          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>권한·상태·PIN 변경 시 해당 사용자의 기존 로그인은 즉시 종료됩니다.</p></div></header>
           {error && <div className={styles.adminError}>{error}</div>}
           <div className={styles.adminUserTable}>
-            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span></div>
+            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span><span>계정 관리</span></div>
             {users.map((account) => <article key={account.userId}>
               <div><strong>{account.displayName}</strong><small>@{account.loginName}{account.userId === currentUser.userId ? " · 현재 계정" : ""}</small></div>
               <time>{account.lastLoginAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(account.lastLoginAt)) : "로그인 기록 없음"}</time>
               <select value={account.role} disabled={!account.enabled || actionLoading === `role-${account.userId}` || account.userId === currentUser.userId} onChange={(event) => onUpdateRole(account.userId, event.target.value)} aria-label={`${account.displayName} 권한`}>
                 <option value="USER">사용자</option><option value="ADMIN">관리자</option>
               </select>
+              <div className={styles.adminAccountActions}>
+                <button type="button" onClick={() => onResetPin(account)} disabled={!account.enabled || Boolean(actionLoading)} title="PIN 초기화"><KeyRound size={14} /></button>
+                <button type="button" onClick={() => onUpdateEnabled(account.userId, !account.enabled)} disabled={account.userId === currentUser.userId || Boolean(actionLoading)} className={account.enabled ? styles.adminDisableButton : styles.adminEnableButton} title={account.enabled ? "계정 중지" : "계정 활성화"}><Power size={14} /><span>{account.enabled ? "중지" : "활성화"}</span></button>
+              </div>
             </article>)}
           </div>
           <AdminPagination pagination={userPage} onPageChange={onUserPageChange} />
@@ -1794,6 +2118,7 @@ export default function TriReadApp() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupError, setGroupError] = useState("");
@@ -1803,6 +2128,7 @@ export default function TriReadApp() {
   const [groupActionSubmitting, setGroupActionSubmitting] = useState(false);
   const [groupActionError, setGroupActionError] = useState("");
   const [latestInviteCode, setLatestInviteCode] = useState("");
+  const [groupInvites, setGroupInvites] = useState([]);
   const [reviewData, setReviewData] = useState(null);
   const [reviewFilter, setReviewFilter] = useState("OPEN");
   const [selectedReviewId, setSelectedReviewId] = useState(null);
@@ -1839,6 +2165,7 @@ export default function TriReadApp() {
   const [adminAuditPage, setAdminAuditPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
+  const [adminOperationsSummary, setAdminOperationsSummary] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
@@ -1876,6 +2203,18 @@ export default function TriReadApp() {
     }
   }
 
+  async function loadGroupDetail(groupId) {
+    const [detail, activity] = await Promise.all([
+      apiFetch(`/api/groups/${groupId}`),
+      apiFetch(`/api/groups/${groupId}/activity`),
+    ]);
+    const invites = detail.role === "OWNER" ? await apiFetch(`/api/groups/${groupId}/invites`) : [];
+    setSelectedGroup(detail);
+    setGroupActivity(activity);
+    setGroupInvites(invites);
+    return detail;
+  }
+
   async function loadGroups(preferredGroupId = null) {
     setGroupsLoading(true);
     setGroupError("");
@@ -1884,15 +2223,11 @@ export default function TriReadApp() {
       setGroups(myGroups);
       const groupId = preferredGroupId || selectedGroup?.groupId || myGroups[0]?.groupId;
       if (groupId) {
-        const [detail, activity] = await Promise.all([
-          apiFetch(`/api/groups/${groupId}`),
-          apiFetch(`/api/groups/${groupId}/activity`),
-        ]);
-        setSelectedGroup(detail);
-        setGroupActivity(activity);
+        await loadGroupDetail(groupId);
       } else {
         setSelectedGroup(null);
         setGroupActivity(null);
+        setGroupInvites([]);
       }
     } catch (error) {
       setGroupError(getErrorMessage(error));
@@ -1906,12 +2241,7 @@ export default function TriReadApp() {
     setGroupError("");
     setLatestInviteCode("");
     try {
-      const [detail, activity] = await Promise.all([
-        apiFetch(`/api/groups/${groupId}`),
-        apiFetch(`/api/groups/${groupId}/activity`),
-      ]);
-      setSelectedGroup(detail);
-      setGroupActivity(activity);
+      await loadGroupDetail(groupId);
     } catch (error) {
       setGroupError(getErrorMessage(error));
     } finally {
@@ -1928,9 +2258,8 @@ export default function TriReadApp() {
         body: JSON.stringify(payload),
       });
       const detail = groupAction === "create" ? response.group : response;
-      setSelectedGroup(detail);
-      setGroupActivity(await apiFetch(`/api/groups/${detail.groupId}/activity`));
       setLatestInviteCode(groupAction === "create" ? response.inviteCode : "");
+      await loadGroupDetail(detail.groupId);
       setGroupAction(null);
       const myGroups = await apiFetch("/api/groups/my");
       setGroups(myGroups);
@@ -1941,19 +2270,54 @@ export default function TriReadApp() {
     }
   }
 
-  async function handleRenewInvite() {
+  async function handleRenewInvite(policy) {
     if (!selectedGroup) {
       return;
     }
-    setGroupError("");
+    setGroupActionSubmitting(true);
+    setGroupActionError("");
     try {
       const response = await apiFetch(`/api/groups/${selectedGroup.groupId}/invites`, {
         method: "POST",
+        body: JSON.stringify(policy),
       });
       setLatestInviteCode(response.inviteCode);
+      setGroupInvites((current) => [response.invite, ...current.map((invite) => policy.revokeExisting ? { ...invite, enabled: false } : invite)]);
+      return true;
     } catch (error) {
-      setGroupError(getErrorMessage(error));
+      setGroupActionError(getErrorMessage(error));
+      return false;
+    } finally {
+      setGroupActionSubmitting(false);
     }
+  }
+
+  async function handleRevokeInvite(inviteId) {
+    if (!selectedGroup || !window.confirm("이 초대 코드를 폐기할까요?")) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/invites/${inviteId}`, { method: "DELETE" });
+      setGroupInvites((current) => current.map((invite) => invite.inviteId === inviteId ? { ...invite, enabled: false } : invite));
+    } catch (error) { setGroupError(getErrorMessage(error)); }
+  }
+
+  async function handleRemoveMember(member) {
+    if (!selectedGroup || !window.confirm(`${member.displayName} 님을 그룹에서 제외할까요?`)) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/members/${member.userId}`, { method: "DELETE" });
+      await loadGroups(selectedGroup.groupId);
+    } catch (error) { setGroupError(getErrorMessage(error)); }
+  }
+
+  async function handleTransferOwnership(member) {
+    if (!selectedGroup || !window.confirm(`${member.displayName} 님에게 소유권을 이전할까요? 이전 후에는 일반 멤버가 됩니다.`)) return;
+    setGroupError("");
+    try {
+      await apiFetch(`/api/groups/${selectedGroup.groupId}/owner`, { method: "PATCH", body: JSON.stringify({ newOwnerUserId: member.userId }) });
+      setLatestInviteCode("");
+      await loadGroups(selectedGroup.groupId);
+    } catch (error) { setGroupError(getErrorMessage(error)); }
   }
 
   async function loadReviews(filter = reviewFilter, preferredReviewId = null) {
@@ -2061,6 +2425,15 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function loadAdminOperations() {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const response = await apiFetch("/api/admin/operations/summary");
+      setAdminOperationsSummary(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
   async function filterAdminGeneration(filters) {
     setAdminGenerationFilters(filters);
     setAdminGenerationDetail(null);
@@ -2136,7 +2509,11 @@ export default function TriReadApp() {
   }
   async function refreshAdminConsole() {
     setAdminGenerationFilters({ status: "", targetDate: "" });
-    return loadAdminConsole({ generation: 0 });
+    const [consoleData] = await Promise.all([
+      loadAdminConsole({ generation: 0 }),
+      loadAdminOperations(),
+    ]);
+    return consoleData;
   }
   async function generateAdminQuiz(targetDate) {
     setAdminActionLoading("generate"); setAdminError("");
@@ -2184,6 +2561,27 @@ export default function TriReadApp() {
         ...current,
         items: current.items.map((account) => account.userId === userId ? updated : account),
       }));
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
+  async function updateAdminEnabled(userId, enabled) {
+    const actionLabel = enabled ? "활성화" : "중지";
+    if (!window.confirm(`이 계정을 ${actionLabel}할까요? 기존 로그인은 종료됩니다.`)) return;
+    setAdminActionLoading(`enabled-${userId}`); setAdminError("");
+    try {
+      const updated = await apiFetch(`/api/admin/users/${userId}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) });
+      setAdminUserPage((current) => ({ ...current, items: current.items.map((account) => account.userId === userId ? updated : account) }));
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
+  }
+  async function resetAdminPin(account) {
+    const newPin = window.prompt(`${account.displayName} 님의 새 PIN(숫자 4~12자리)을 입력하세요.`);
+    if (newPin === null) return;
+    if (!/^\d{4,12}$/.test(newPin)) { setAdminError("PIN은 숫자 4~12자리로 입력해 주세요."); return; }
+    if (!window.confirm("PIN을 초기화하고 해당 사용자의 기존 로그인을 종료할까요?")) return;
+    setAdminActionLoading(`pin-${account.userId}`); setAdminError("");
+    try {
+      await apiFetch(`/api/admin/users/${account.userId}/pin`, { method: "PATCH", body: JSON.stringify({ newPin }) });
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminActionLoading(""); }
   }
@@ -2278,12 +2676,19 @@ export default function TriReadApp() {
       setGroups([]);
       setSelectedGroup(null);
       setGroupActivity(null);
+      setGroupInvites([]);
       setLatestInviteCode("");
       setReviewData(null);
       setSelectedReviewId(null);
       setOrbitData(null);
       setLoggingOut(false);
     }
+  }
+
+  async function handlePinChanged() {
+    setAccountDialogOpen(false);
+    window.alert("PIN이 변경되었습니다. 새 PIN으로 다시 로그인해 주세요.");
+    try { await handleLogout(); } catch { /* PIN 변경으로 이미 만료된 세션입니다. */ }
   }
 
   function handleSelect(questionId, optionId) {
@@ -2342,6 +2747,7 @@ export default function TriReadApp() {
         user={user}
         streak={streak}
         view={view}
+        onAccountOpen={() => setAccountDialogOpen(true)}
         onLogout={handleLogout}
         loggingOut={loggingOut}
       />
@@ -2354,6 +2760,7 @@ export default function TriReadApp() {
           loading={groupsLoading}
           error={groupError}
           latestInviteCode={latestInviteCode}
+          invites={groupInvites}
           actionMode={groupAction}
           actionSubmitting={groupActionSubmitting}
           actionError={groupActionError}
@@ -2364,6 +2771,9 @@ export default function TriReadApp() {
           onActionSubmit={handleGroupAction}
           onSelectGroup={handleSelectGroup}
           onRenewInvite={handleRenewInvite}
+          onRevokeInvite={handleRevokeInvite}
+          onRemoveMember={handleRemoveMember}
+          onTransferOwnership={handleTransferOwnership}
           onReload={() => loadGroups()}
         />
       ) : view === "orbit" ? (
@@ -2387,6 +2797,7 @@ export default function TriReadApp() {
           generationFilters={adminGenerationFilters}
           loginLocks={adminLoginLocks}
           auditPage={adminAuditPage}
+          operationsSummary={adminOperationsSummary}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2399,6 +2810,8 @@ export default function TriReadApp() {
           onRetry={retryAdminGeneration}
           onLoadGeneration={loadAdminGeneration}
           onUpdateRole={updateAdminRole}
+          onUpdateEnabled={updateAdminEnabled}
+          onResetPin={resetAdminPin}
           onLoadPrompts={loadAdminPrompts}
           onCreatePrompt={createAdminPrompt}
           onActivatePrompt={activateAdminPrompt}
@@ -2409,6 +2822,7 @@ export default function TriReadApp() {
           onUserPageChange={loadAdminUsers}
           onLoadSecurity={loadAdminSecurity}
           onUnlockLogin={unlockAdminLogin}
+          onLoadOperations={loadAdminOperations}
         />
       ) : view === "reviews" ? (
         <ReviewHub
@@ -2468,6 +2882,7 @@ export default function TriReadApp() {
       ) : (
         <EmptyQuiz message={quizError} onRetry={loadQuiz} />
       )}
+      <AccountPinDialog open={accountDialogOpen} onClose={() => setAccountDialogOpen(false)} onChanged={handlePinChanged} />
     </main>
   );
 }

@@ -447,10 +447,18 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
   color: #3c4b51;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 800;
+  cursor: pointer;
 }
+
+.userBadge:hover { border-color: #d9e0df; background: #f6f8f7; }
 
 .iconButton {
   display: grid;
@@ -1691,6 +1699,43 @@
   min-height: 38px;
 }
 
+.quizSources {
+  display: grid;
+  grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+  gap: 28px;
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid #d7e0dd;
+  background: #f6faf8;
+}
+
+.quizSources h2 { margin: 5px 0 7px; font-size: 18px; }
+.quizSources > div > span { color: #6b7b77; font-size: 12px; line-height: 1.6; }
+.quizSources ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.quizSources a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  padding: 11px 12px;
+  color: #25413a;
+  border: 1px solid #d5dfdc;
+  background: #fff;
+  text-decoration: none;
+}
+.quizSources a strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.quizSources a span { color: #74837f; font-size: 11px; }
+.quizSources a svg { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: #168773; }
+
+.inviteListSection { padding-top: 28px; }
+.inviteList { border-top: 1px solid #dfe5e3; }
+.inviteList article { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 64px; border-bottom: 1px solid #e5e9e8; }
+.inviteList article > div { display: grid; gap: 4px; }
+.inviteList strong { color: #293a40; font-size: 12px; }
+.inviteList small { color: #748187; font-size: 10px; font-weight: 700; }
+.inviteEnabled, .inviteDisabled { padding: 5px 7px; border: 1px solid #9dccbf; color: #0e766e; background: #eaf6f2; font-size: 10px; font-weight: 850; text-align: center; }
+.inviteDisabled { border-color: #d5dcda; color: #7a8582; background: #f2f4f3; }
+.dangerTextButton { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #e0b3b3; background: #fff7f7; color: #9a3d3d; font: inherit; font-size: 11px; cursor: pointer; }
+
 .memberSection {
   padding-top: 34px;
 }
@@ -1782,6 +1827,10 @@
   display: grid;
   gap: 17px;
 }
+
+.formHint { margin: -4px 0 0; color: #748187; font-size: 11px; }
+.checkboxLabel { display: flex !important; align-items: center; gap: 9px !important; }
+.checkboxLabel input { width: 16px; height: 16px; min-height: 0; margin: 0; }
 
 .groupForm label {
   display: grid;
@@ -3033,14 +3082,64 @@
 .adminValidationList ul { margin: 10px 0 0; padding-left: 18px; }
 .adminValidationList li + li { margin-top: 5px; }
 .adminValidationList li b { margin-right: 5px; color: #9a3b3b; font-size: 10px; }
+.adminOutlineButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 13px; border: 1px solid #aebfba; color: #31534b; background: #fff; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.adminOutlineButton:disabled { cursor: wait; opacity: .6; }
+.opsHealthGrid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #ccd7d4; background: #fff; }
+.opsHealthGrid article { display: flex; align-items: flex-start; gap: 11px; min-height: 86px; padding: 17px; border-right: 1px solid #d9e1df; border-bottom: 1px solid #d9e1df; }
+.opsHealthGrid article:nth-child(3n) { border-right: 0; }
+.opsHealthGrid article:nth-last-child(-n+3) { border-bottom: 0; }
+.opsHealthGrid svg { margin-top: 2px; color: #168773; }
+.opsHealthGrid span, .opsHealthGrid strong, .opsHealthGrid small { display: block; }
+.opsHealthGrid span { margin-bottom: 5px; color: #72827e; font-size: 10px; }
+.opsHealthGrid strong { color: #243d37; font-size: 15px; }
+.opsHealthGrid small { margin-top: 4px; color: #7b8986; font-size: 9px; }
+.opsHealthGrid .opsHealthy { color: #0d806d; }
+.opsHealthGrid .opsWarning { color: #a45a26; }
+.opsSection { margin-top: 28px; }
+.opsSection .adminSectionHeading > b { color: #516762; font-size: 11px; }
+.opsErrorCodes { display: flex; flex-wrap: wrap; gap: 7px; margin-top: -18px; margin-bottom: 22px; }
+.opsErrorCodes span { padding: 6px 9px; color: #8a3e3e; border: 1px solid #e0b6b6; background: #fff3f3; font-size: 10px; }
+.opsInventory { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid #ccd7d4; background: #fff; }
+.opsInventory article { min-width: 0; padding: 13px; border-right: 1px solid #d9e1df; }
+.opsInventory article:last-child { border-right: 0; }
+.opsInventory time, .opsInventory strong, .opsInventory span { display: block; }
+.opsInventory time { color: #70817d; font-size: 9px; }
+.opsInventory strong { margin: 7px 0 3px; color: #173b33; font-size: 18px; }
+.opsInventory span { color: #168773; font-size: 10px; font-weight: 800; }
+.opsInventory .opsInventoryShortage { box-shadow: inset 0 3px #d96555; background: #fff6f4; }
+.opsInventory .opsInventoryShortage span { color: #ad3b2f; }
+.opsTwoColumns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.opsDefinitionList { margin: 0; border-top: 1px solid #cbd6d3; background: #fff; }
+.opsDefinitionList div { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 42px; padding: 0 13px; border-bottom: 1px solid #dde4e2; }
+.opsDefinitionList dt { color: #657670; font-size: 11px; }
+.opsDefinitionList dd { margin: 0; color: #263f39; text-align: right; font-size: 11px; font-weight: 800; }
+.opsRows { border-top: 1px solid #cbd6d3; background: #fff; }
+.opsRows article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 58px; padding: 9px 13px; border-bottom: 1px solid #dde4e2; }
+.opsRows strong, .opsRows span { display: block; }
+.opsRows strong { color: #29433d; font-size: 11px; }
+.opsRows span { overflow: hidden; margin-top: 4px; color: #788783; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.opsRows time { color: #788783; font-size: 9px; }
+.adminSourceReview { margin-bottom: 18px; }
+.adminSourceReview > div:last-child { border-top: 1px solid #cbd6d3; background: #fff; }
+.adminSourceReview article { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 58px; padding: 8px 13px; border-bottom: 1px solid #dbe2e0; }
+.adminSourceReview article > span { color: #168773; font-size: 10px; font-weight: 800; }
+.adminSourceReview a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 9px; color: #29423c; text-decoration: none; }
+.adminSourceReview a strong, .adminSourceReview a small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adminSourceReview a small { color: #778783; font-size: 10px; }
+.adminSourceReview a svg { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: #168773; }
 .adminUserTable { border-top: 1px solid #cbd6d3; background: #fff; }
-.adminUserHeader, .adminUserTable article { display: grid; grid-template-columns: minmax(180px, 1fr) 210px 120px; align-items: center; gap: 18px; min-height: 62px; padding: 0 18px; border-bottom: 1px solid #dae2e0; }
+.adminUserHeader, .adminUserTable article { display: grid; grid-template-columns: minmax(180px, 1fr) 190px 110px 150px; align-items: center; gap: 14px; min-height: 62px; padding: 0 18px; border-bottom: 1px solid #dae2e0; }
 .adminUserHeader { min-height: 38px; color: #768681; background: #edf2f0; font-size: 11px; font-weight: 700; }
 .adminUserTable strong, .adminUserTable small { display: block; }
 .adminUserTable small { margin-top: 3px; color: #788984; font-size: 11px; }
 .adminUserTable time { color: #62736e; font-size: 12px; }
 .adminUserTable select { height: 34px; padding: 0 8px; border: 1px solid #becbc7; background: #fff; font: inherit; font-size: 12px; }
 .adminUserTable select:disabled { color: #71807c; background: #edf1f0; }
+.adminAccountActions { display: flex; align-items: center; gap: 6px; }
+.adminAccountActions button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 32px; height: 32px; padding: 0 7px; border: 1px solid #c5d0cd; background: #fff; color: #46605a; font: inherit; font-size: 10px; cursor: pointer; }
+.adminAccountActions button:disabled { cursor: not-allowed; opacity: .45; }
+.adminAccountActions .adminDisableButton { border-color: #e0b6b6; color: #923b3b; background: #fff7f7; }
+.adminAccountActions .adminEnableButton { border-color: #9fcabc; color: #0c7165; background: #eff9f5; }
 .adminSecuritySection + .adminSecuritySection { margin-top: 34px; padding-top: 26px; border-top: 1px solid #cbd6d3; }
 .adminSecuritySection .adminSectionHeading > strong { color: #38534c; font-size: 13px; }
 .adminLockList, .adminAuditList { border-top: 1px solid #cbd6d3; background: #fff; }
@@ -3113,7 +3212,20 @@
   .adminEditor, .adminWorkspace { padding: 28px 20px 48px; }
   .adminPromptLayout { grid-template-columns: 1fr; }
   .adminPromptEditor { padding: 0 0 26px; border-right: 0; border-bottom: 1px solid #ccd7d4; }
+  .opsInventory { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .opsInventory article { border-bottom: 1px solid #d9e1df; }
 }
+
+@media (max-width: 600px) {
+  .adminAccountActions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+}
+
+.memberActions { display: flex !important; flex-direction: row; gap: 7px !important; }
+.memberActions button { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 8px; border: 1px solid #cbd6d3; background: #fff; color: #4d615b; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.memberActions button:last-child { border-color: #e1bbbb; color: #963f3f; background: #fff8f8; }
 @media (max-width: 600px) {
   .adminEditorHeader { align-items: stretch; flex-direction: column; }
   .adminTwoColumns, .adminOptions, .adminQuizList, .adminMetrics { grid-template-columns: 1fr; }
@@ -3140,6 +3252,12 @@
   .adminPromptActivations > div:last-child { grid-template-columns: 1fr; }
   .adminPromptActivations p { grid-template-columns: 18px 34px minmax(0, 1fr); }
   .adminPromptActivations p time { grid-column: 3; }
+  .quizSources, .opsTwoColumns { grid-template-columns: 1fr; }
+  .opsHealthGrid { grid-template-columns: 1fr 1fr; }
+  .opsHealthGrid article, .opsHealthGrid article:nth-child(3n) { border-right: 1px solid #d9e1df; border-bottom: 1px solid #d9e1df; }
+  .opsHealthGrid article:nth-child(2n) { border-right: 0; }
+  .opsInventory { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adminSourceReview article { grid-template-columns: 54px minmax(0, 1fr); }
 }
 
 @media (max-width: 780px) {
