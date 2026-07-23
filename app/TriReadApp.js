@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -13,8 +14,11 @@ import {
   Copy,
   Crown,
   Clock3,
+  Database,
+  ExternalLink,
   Flame,
   FileText,
+  Gauge,
   History,
   KeyRound,
   Landmark,
@@ -29,6 +33,7 @@ import {
   Rocket,
   Scale,
   Send,
+  Server,
   ShieldCheck,
   Sparkles,
   Power,
@@ -87,6 +92,28 @@ function formatToday() {
     day: "numeric",
     weekday: "short",
   }).format(new Date());
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatDuration(seconds = 0) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days) return `${days}일 ${hours}시간`;
+  if (hours) return `${hours}시간 ${minutes}분`;
+  return `${minutes}분`;
+}
+
+function formatBytes(bytes = 0) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(bytes > 1024 ** 3 ? 0 : 1)} MB`;
 }
 
 function getErrorMessage(error) {
@@ -606,6 +633,27 @@ function QuizWorkspace({
           ))}
         </div>
       </div>
+
+      {result && result.sources?.length > 0 && (
+        <section className={styles.quizSources}>
+          <div>
+            <p className={styles.eyebrow}>REFERENCES</p>
+            <h2>이 지문을 만들 때 참고한 자료</h2>
+            <span>문장을 그대로 옮기지 않고 핵심 사실을 바탕으로 새로 구성했어요.</span>
+          </div>
+          <ul>
+            {result.sources.map((source) => (
+              <li key={source.sourceUrl}>
+                <a href={source.sourceUrl} target="_blank" rel="noreferrer">
+                  <strong>{source.title}</strong>
+                  <span>{source.publisher}{source.publishedOn ? ` · ${source.publishedOn}` : ""}</span>
+                  <ExternalLink size={15} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {submitError && <p className={styles.submitError}>{submitError}</p>}
 
@@ -1550,17 +1598,128 @@ function AdminPromptPanel({ promptPage, loading, actionLoading, error, onLoad, o
   );
 }
 
+function AdminOperationsPanel({ summary, loading, error, onLoad }) {
+  const ai = summary?.aiToday || {};
+  const quality = summary?.quality || {};
+  const healthItems = [
+    ["애플리케이션", summary?.applicationStatus, Server],
+    ["PostgreSQL", summary?.databaseStatus, Database],
+    ["HTTPS", typeof window !== "undefined" && window.location.protocol === "https:" ? "UP" : "CHECK", ShieldCheck],
+  ];
+
+  return (
+    <div className={styles.adminWorkspace}>
+      <header className={styles.adminEditorHeader}>
+        <div>
+          <span>OPERATIONS</span>
+          <h1>운영 현황</h1>
+          <p>서비스 상태, 생성 품질, 퀴즈 재고와 최근 장애를 한곳에서 확인합니다.</p>
+        </div>
+        <button className={styles.adminOutlineButton} type="button" onClick={onLoad} disabled={loading}>
+          <RefreshCw size={15} /> {loading ? "확인 중" : "새로고침"}
+        </button>
+      </header>
+      {error && <div className={styles.adminError}>{error}</div>}
+      {!summary ? <div className={styles.adminEmpty}>운영 정보를 불러오는 중입니다.</div> : <>
+        <section className={styles.opsHealthGrid}>
+          {healthItems.map(([label, status, Icon]) => (
+            <article key={label}>
+              <Icon size={18} />
+              <div><span>{label}</span><strong className={status === "UP" ? styles.opsHealthy : styles.opsWarning}>{status || "UNKNOWN"}</strong></div>
+            </article>
+          ))}
+          <article><Activity size={18} /><div><span>가동 시간</span><strong>{formatDuration(summary.uptimeSeconds)}</strong></div></article>
+          <article><Gauge size={18} /><div><span>배포 버전</span><strong>{summary.version}</strong><small>{formatDateTime(summary.startedAt)} 시작</small></div></article>
+          <article><Database size={18} /><div><span>DB 크기</span><strong>{formatBytes(summary.databaseSizeBytes)}</strong></div></article>
+        </section>
+
+        <section className={styles.opsSection}>
+          <div className={styles.adminSectionHeading}><div><span>TODAY</span><h2>Gemini API</h2></div><b>평균 {Math.round(ai.averageLatencyMs || 0)}ms</b></div>
+          <div className={styles.adminMetrics}>
+            <div><span>전체 호출</span><strong>{ai.totalCount || 0}</strong></div>
+            <div><span>성공</span><strong>{ai.successCount || 0}</strong></div>
+            <div><span>실패</span><strong>{ai.failureCount || 0}</strong></div>
+            <div><span>오류 코드</span><strong>{summary.aiErrorsToday?.length || 0}<small>종</small></strong></div>
+          </div>
+          {summary.aiErrorsToday?.length > 0 && <div className={styles.opsErrorCodes}>
+            {summary.aiErrorsToday.map((item) => <span key={item.errorCode}>{item.errorCode || "UNKNOWN"} <b>{item.count}</b></span>)}
+          </div>}
+        </section>
+
+        <section className={styles.opsSection}>
+          <div className={styles.adminSectionHeading}><div><span>NEXT 7 DAYS</span><h2>퀴즈 재고</h2></div></div>
+          <div className={styles.opsInventory}>
+            {summary.inventory?.map((item) => (
+              <article key={item.challengeDate} className={item.shortage ? styles.opsInventoryShortage : ""}>
+                <time>{item.challengeDate}</time>
+                <strong>{item.publishedCount}/{item.requiredCount}</strong>
+                <span>{item.shortage ? "부족" : "준비 완료"}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <div className={styles.opsTwoColumns}>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>LAST 7 DAYS</span><h2>생성 품질</h2></div></div>
+            <dl className={styles.opsDefinitionList}>
+              <div><dt>평균 검증 점수</dt><dd>{Math.round(quality.averageValidationScore || 0)}점</dd></div>
+              <div><dt>발행 성공</dt><dd>{quality.publishedCount || 0}건</dd></div>
+              <div><dt>실패율</dt><dd>{quality.completedCount ? (quality.failedCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>재시도율</dt><dd>{quality.completedCount ? (quality.retryCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>중복 거절률</dt><dd>{quality.completedCount ? (quality.duplicateRejectedCount * 100 / quality.completedCount).toFixed(1) : "0.0"}%</dd></div>
+              <div><dt>근거 자료</dt><dd>{summary.groundedBriefCount}회 · {summary.groundedSourceCount}개</dd></div>
+            </dl>
+          </section>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>AUTOMATION</span><h2>스케줄러·백업</h2></div></div>
+            <dl className={styles.opsDefinitionList}>
+              <div><dt>최근 생성</dt><dd>{summary.lastSchedulerRun?.status || "기록 없음"}</dd></div>
+              <div><dt>생성 완료</dt><dd>{formatDateTime(summary.lastSchedulerRun?.completedAt)}</dd></div>
+              <div><dt>다음 생성</dt><dd>{formatDateTime(summary.nextSchedulerRun)}</dd></div>
+              <div><dt>최근 DB 백업</dt><dd>{summary.lastBackupRun?.status || "기록 없음"}</dd></div>
+              <div><dt>백업 완료</dt><dd>{formatDateTime(summary.lastBackupRun?.completedAt)}</dd></div>
+              <div><dt>로그인 잠금</dt><dd>{summary.activeLoginLocks}건</dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div className={styles.opsTwoColumns}>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>FAILURES</span><h2>최근 생성 실패</h2></div></div>
+            {summary.recentFailures?.length ? <div className={styles.opsRows}>
+              {summary.recentFailures.map((failure) => <article key={failure.generationLogId}>
+                <div><strong>#{failure.generationLogId} · {failure.targetDate}</strong><span>{failure.errorMessage || failure.status}</span></div>
+                <time>{formatDateTime(failure.updatedAt)}</time>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>최근 실패가 없습니다.</div>}
+          </section>
+          <section className={styles.opsSection}>
+            <div className={styles.adminSectionHeading}><div><span>AUDIT</span><h2>최근 관리자 작업</h2></div></div>
+            {summary.recentAdminActions?.length ? <div className={styles.opsRows}>
+              {summary.recentAdminActions.map((audit) => <article key={audit.auditLogId}>
+                <div><strong>{audit.action}</strong><span>@{audit.actorLoginName || "system"} · {audit.targetType}</span></div>
+                <time>{formatDateTime(audit.createdAt)}</time>
+              </article>)}
+            </div> : <div className={styles.adminEmpty}>최근 관리자 작업이 없습니다.</div>}
+          </section>
+        </div>
+      </>}
+    </div>
+  );
+}
+
 function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
-  generationFilters, loginLocks, auditPage,
+  generationFilters, loginLocks, auditPage, operationsSummary,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
   onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin,
+  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations,
 }) {
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
   const users = userPage?.items || [];
-  const [section, setSection] = useState("operations");
+  const [section, setSection] = useState("overview");
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1571,6 +1730,7 @@ function AdminQuizHub({
 
   useEffect(() => {
     if (section === "security") onLoadSecurity(auditPage?.page || 0);
+    if (section === "overview") onLoadOperations();
   }, [section]);
 
   useEffect(() => {
@@ -1624,7 +1784,8 @@ function AdminQuizHub({
   }
 
   const sectionItems = [
-    ["operations", Sparkles, "생성 운영"],
+    ["overview", Activity, "운영 현황"],
+    ["operations", Sparkles, "퀴즈 생성"],
     ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
     ["access", ShieldCheck, "권한 관리"],
@@ -1663,7 +1824,14 @@ function AdminQuizHub({
         </button>
       </aside>
 
-      {section === "operations" ? (
+      {section === "overview" ? (
+        <AdminOperationsPanel
+          summary={operationsSummary}
+          loading={loading}
+          error={error}
+          onLoad={onLoadOperations}
+        />
+      ) : section === "operations" ? (
         <div className={styles.adminWorkspace}>
           <header className={styles.adminEditorHeader}>
             <div><span>AI PIPELINE</span><h1>퀴즈 생성 운영</h1><p>Gemini 생성, 자동 검증, 편집과 발행 상태를 확인합니다.</p></div>
@@ -1729,6 +1897,19 @@ function AdminQuizHub({
           {generationDetail && <section className={styles.adminValidationPanel}>
             <header><div><span>GENERATION #{generationDetail.log.generationLogId}</span><h2>검증 상세</h2></div><button type="button" onClick={() => onLoadGeneration(null)} aria-label="검증 상세 닫기" title="닫기"><X size={17} /></button></header>
             {generationDetail.log.errorMessage && <p className={styles.adminFailureReason}>{generationDetail.log.errorMessage}</p>}
+            {generationDetail.sources?.length > 0 && <section className={styles.adminSourceReview}>
+              <div className={styles.adminSectionHeading}><div><span>GROUNDING</span><h2>지문 생성 참고 자료</h2></div><b>{generationDetail.sources.length}개</b></div>
+              <div>
+                {generationDetail.sources.map((source) => <article key={`${source.passagePosition}-${source.contentSourceId}`}>
+                  <span>지문 {source.passagePosition}</span>
+                  <a href={source.sourceUrl} target="_blank" rel="noreferrer">
+                    <strong>{source.title}</strong>
+                    <small>{source.publisher}{source.publishedOn ? ` · ${source.publishedOn}` : ""}</small>
+                    <ExternalLink size={14} />
+                  </a>
+                </article>)}
+              </div>
+            </section>}
             <div className={styles.adminValidationList}>
               {generationDetail.validations.map((validation) => <article key={validation.validationResultId}>
                 <div><strong>{ADMIN_VALIDATION_LABELS[validation.validationType] || validation.validationType}</strong><span>{validation.attemptNumber}차 · {validation.score}점 · {validation.passed ? "통과" : "실패"}</span></div>
@@ -1984,6 +2165,7 @@ export default function TriReadApp() {
   const [adminAuditPage, setAdminAuditPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
+  const [adminOperationsSummary, setAdminOperationsSummary] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
@@ -2243,6 +2425,15 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function loadAdminOperations() {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const response = await apiFetch("/api/admin/operations/summary");
+      setAdminOperationsSummary(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
   async function filterAdminGeneration(filters) {
     setAdminGenerationFilters(filters);
     setAdminGenerationDetail(null);
@@ -2318,7 +2509,11 @@ export default function TriReadApp() {
   }
   async function refreshAdminConsole() {
     setAdminGenerationFilters({ status: "", targetDate: "" });
-    return loadAdminConsole({ generation: 0 });
+    const [consoleData] = await Promise.all([
+      loadAdminConsole({ generation: 0 }),
+      loadAdminOperations(),
+    ]);
+    return consoleData;
   }
   async function generateAdminQuiz(targetDate) {
     setAdminActionLoading("generate"); setAdminError("");
@@ -2602,6 +2797,7 @@ export default function TriReadApp() {
           generationFilters={adminGenerationFilters}
           loginLocks={adminLoginLocks}
           auditPage={adminAuditPage}
+          operationsSummary={adminOperationsSummary}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2626,6 +2822,7 @@ export default function TriReadApp() {
           onUserPageChange={loadAdminUsers}
           onLoadSecurity={loadAdminSecurity}
           onUnlockLogin={unlockAdminLogin}
+          onLoadOperations={loadAdminOperations}
         />
       ) : view === "reviews" ? (
         <ReviewHub
