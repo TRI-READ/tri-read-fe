@@ -3020,6 +3020,9 @@
 .adminEditorHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .adminEditorHeader h1 { margin: 7px 0 4px; font-size: 30px; letter-spacing: 0; }
 .adminEditorHeader p { margin: 0; color: #70817d; }
+.adminHeaderActions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.adminNotificationState { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 11px; border: 1px solid #dec9a5; color: #745a2f; background: #fff8e8; font-size: 11px; font-weight: 800; }
+.adminNotificationReady { border-color: #a9d9ce; color: #17695a; background: #edfaf6; }
 .adminEditor label { display: grid; gap: 6px; color: #40534f; font-size: 12px; font-weight: 700; }
 .adminEditor input, .adminEditor textarea { width: 100%; border: 1px solid #cfd9d6; background: #fff; padding: 10px 11px; color: #263a36; font: inherit; resize: vertical; }
 .adminEditor input:focus, .adminEditor textarea:focus { outline: 2px solid #82d9c5; outline-offset: 1px; }
@@ -3038,6 +3041,7 @@
 .adminOptions span { color: #19806e; text-align: center; }
 .adminFooter { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #d5dddb; color: #70817d; font-size: 12px; }
 .adminError { margin-bottom: 14px; padding: 11px 13px; color: #8b2b2b; border: 1px solid #e5bdbd; background: #fff0f0; }
+.adminSuccess { margin-bottom: 14px; padding: 11px 13px; color: #17695a; border: 1px solid #a9d9ce; background: #edfaf6; }
 .adminGenerateControls { display: flex; align-items: flex-end; gap: 8px; }
 .adminGenerateControls label { display: grid; gap: 5px; color: #546762; font-size: 11px; font-weight: 700; }
 .adminGenerateControls input { height: 40px; padding: 0 10px; border: 1px solid #cbd6d3; background: #fff; font: inherit; }
@@ -3228,6 +3232,7 @@
 .memberActions button:last-child { border-color: #e1bbbb; color: #963f3f; background: #fff8f8; }
 @media (max-width: 600px) {
   .adminEditorHeader { align-items: stretch; flex-direction: column; }
+  .adminHeaderActions { justify-content: flex-start; }
   .adminTwoColumns, .adminOptions, .adminQuizList, .adminMetrics { grid-template-columns: 1fr; }
   .adminMetrics div { border-right: 0; border-bottom: 1px solid #d9e1df; }
   .adminMetrics div:last-child { border-bottom: 0; }

@@ -1598,9 +1598,12 @@ function AdminPromptPanel({ promptPage, loading, actionLoading, error, onLoad, o
   );
 }
 
-function AdminOperationsPanel({ summary, loading, error, onLoad }) {
+function AdminOperationsPanel({
+  summary, notificationStatus, notice, loading, actionLoading, error, onLoad, onTestNotification,
+}) {
   const ai = summary?.aiToday || {};
   const quality = summary?.quality || {};
+  const notificationReady = notificationStatus?.enabled && notificationStatus?.configured;
   const healthItems = [
     ["애플리케이션", summary?.applicationStatus, Server],
     ["PostgreSQL", summary?.databaseStatus, Database],
@@ -1615,11 +1618,25 @@ function AdminOperationsPanel({ summary, loading, error, onLoad }) {
           <h1>운영 현황</h1>
           <p>서비스 상태, 생성 품질, 퀴즈 재고와 최근 장애를 한곳에서 확인합니다.</p>
         </div>
-        <button className={styles.adminOutlineButton} type="button" onClick={onLoad} disabled={loading}>
-          <RefreshCw size={15} /> {loading ? "확인 중" : "새로고침"}
-        </button>
+        <div className={styles.adminHeaderActions}>
+          <span className={`${styles.adminNotificationState} ${notificationReady ? styles.adminNotificationReady : ""}`}>
+            <Send size={14} /> {notificationReady ? "Discord 연결됨" : "Discord 설정 필요"}
+          </span>
+          <button
+            className={styles.adminOutlineButton}
+            type="button"
+            onClick={onTestNotification}
+            disabled={!notificationReady || Boolean(actionLoading)}
+          >
+            <Send size={15} /> {actionLoading === "discord-test" ? "전송 중" : "테스트 알림"}
+          </button>
+          <button className={styles.adminOutlineButton} type="button" onClick={onLoad} disabled={loading}>
+            <RefreshCw size={15} /> {loading ? "확인 중" : "새로고침"}
+          </button>
+        </div>
       </header>
       {error && <div className={styles.adminError}>{error}</div>}
+      {notice && <div className={styles.adminSuccess}>{notice}</div>}
       {!summary ? <div className={styles.adminEmpty}>운영 정보를 불러오는 중입니다.</div> : <>
         <section className={styles.opsHealthGrid}>
           {healthItems.map(([label, status, Icon]) => (
@@ -1711,10 +1728,10 @@ function AdminOperationsPanel({ summary, loading, error, onLoad }) {
 
 function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
-  generationFilters, loginLocks, auditPage, operationsSummary,
+  generationFilters, loginLocks, auditPage, operationsSummary, operationsNotificationStatus, operationsNotice,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
   onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations,
+  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations, onTestNotification,
 }) {
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
@@ -1827,9 +1844,13 @@ function AdminQuizHub({
       {section === "overview" ? (
         <AdminOperationsPanel
           summary={operationsSummary}
+          notificationStatus={operationsNotificationStatus}
+          notice={operationsNotice}
           loading={loading}
+          actionLoading={actionLoading}
           error={error}
           onLoad={onLoadOperations}
+          onTestNotification={onTestNotification}
         />
       ) : section === "operations" ? (
         <div className={styles.adminWorkspace}>
@@ -2166,6 +2187,8 @@ export default function TriReadApp() {
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
   const [adminOperationsSummary, setAdminOperationsSummary] = useState(null);
+  const [adminOperationsNotificationStatus, setAdminOperationsNotificationStatus] = useState(null);
+  const [adminOperationsNotice, setAdminOperationsNotice] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
@@ -2426,13 +2449,26 @@ export default function TriReadApp() {
     finally { setAdminLoading(false); }
   }
   async function loadAdminOperations() {
-    setAdminLoading(true); setAdminError("");
+    setAdminLoading(true); setAdminError(""); setAdminOperationsNotice("");
     try {
-      const response = await apiFetch("/api/admin/operations/summary");
-      setAdminOperationsSummary(response);
-      return response;
+      const [summary, notificationStatus] = await Promise.all([
+        apiFetch("/api/admin/operations/summary"),
+        apiFetch("/api/admin/operations/notifications"),
+      ]);
+      setAdminOperationsSummary(summary);
+      setAdminOperationsNotificationStatus(notificationStatus);
+      return summary;
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
+  }
+  async function testAdminNotification() {
+    setAdminActionLoading("discord-test"); setAdminError(""); setAdminOperationsNotice("");
+    try {
+      const response = await apiFetch("/api/admin/operations/notifications/test", { method: "POST" });
+      setAdminOperationsNotice(response.message || "Discord 테스트 알림을 전송했습니다.");
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminActionLoading(""); }
   }
   async function filterAdminGeneration(filters) {
     setAdminGenerationFilters(filters);
@@ -2798,6 +2834,8 @@ export default function TriReadApp() {
           loginLocks={adminLoginLocks}
           auditPage={adminAuditPage}
           operationsSummary={adminOperationsSummary}
+          operationsNotificationStatus={adminOperationsNotificationStatus}
+          operationsNotice={adminOperationsNotice}
           loading={adminLoading}
           actionLoading={adminActionLoading}
           error={adminError}
@@ -2823,6 +2861,7 @@ export default function TriReadApp() {
           onLoadSecurity={loadAdminSecurity}
           onUnlockLogin={unlockAdminLogin}
           onLoadOperations={loadAdminOperations}
+          onTestNotification={testAdminNotification}
         />
       ) : view === "reviews" ? (
         <ReviewHub
