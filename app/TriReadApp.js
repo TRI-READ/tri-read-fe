@@ -1603,7 +1603,11 @@ function AdminOperationsPanel({
 }) {
   const ai = summary?.aiToday || {};
   const quality = summary?.quality || {};
+  const notificationUnknown = notificationStatus == null;
   const notificationReady = notificationStatus?.enabled && notificationStatus?.configured;
+  const notificationLabel = notificationUnknown
+    ? (loading ? "Discord 확인 중" : "Discord 상태 확인 실패")
+    : (notificationReady ? "Discord 연결됨" : "Discord 설정 필요");
   const healthItems = [
     ["애플리케이션", summary?.applicationStatus, Server],
     ["PostgreSQL", summary?.databaseStatus, Database],
@@ -1620,7 +1624,7 @@ function AdminOperationsPanel({
         </div>
         <div className={styles.adminHeaderActions}>
           <span className={`${styles.adminNotificationState} ${notificationReady ? styles.adminNotificationReady : ""}`}>
-            <Send size={14} /> {notificationReady ? "Discord 연결됨" : "Discord 설정 필요"}
+            <Send size={14} /> {notificationLabel}
           </span>
           <button
             className={styles.adminOutlineButton}
@@ -2451,14 +2455,25 @@ export default function TriReadApp() {
   async function loadAdminOperations() {
     setAdminLoading(true); setAdminError(""); setAdminOperationsNotice("");
     try {
-      const [summary, notificationStatus] = await Promise.all([
+      const [summaryResult, notificationResult] = await Promise.allSettled([
         apiFetch("/api/admin/operations/summary"),
         apiFetch("/api/admin/operations/notifications"),
       ]);
-      setAdminOperationsSummary(summary);
-      setAdminOperationsNotificationStatus(notificationStatus);
-      return summary;
-    } catch (error) { setAdminError(getErrorMessage(error)); }
+      if (summaryResult.status === "fulfilled") {
+        setAdminOperationsSummary(summaryResult.value);
+      }
+      if (notificationResult.status === "fulfilled") {
+        setAdminOperationsNotificationStatus(notificationResult.value);
+      }
+
+      const failedRequest = [summaryResult, notificationResult]
+        .find((result) => result.status === "rejected");
+      if (failedRequest) {
+        setAdminError(getErrorMessage(failedRequest.reason));
+      }
+
+      return summaryResult.status === "fulfilled" ? summaryResult.value : null;
+    }
     finally { setAdminLoading(false); }
   }
   async function testAdminNotification() {
