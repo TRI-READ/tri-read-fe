@@ -401,3 +401,28 @@ test("핵심 화면이 가로로 넘치지 않는다", async ({ page }) => {
   await expect(page.getByRole("heading", { name: passages[0].title })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+test("quiz text and options keep readable dimensions", async ({ page }, testInfo) => {
+  await mockApi(page, { authenticated: true });
+  await page.goto("/quiz");
+  await page.getByRole("button", { name: new RegExp(passages[0].title) }).click();
+
+  const passageMetrics = await page.locator("article p").first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      fontSize: Number.parseFloat(style.fontSize),
+      lineHeight: Number.parseFloat(style.lineHeight),
+      width: element.getBoundingClientRect().width,
+    };
+  });
+  const optionHeight = await page.locator("fieldset label").first().evaluate((element) =>
+    element.getBoundingClientRect().height,
+  );
+
+  expect(passageMetrics.fontSize).toBeGreaterThanOrEqual(17);
+  expect(passageMetrics.lineHeight / passageMetrics.fontSize).toBeGreaterThanOrEqual(1.8);
+  expect(passageMetrics.width).toBeLessThanOrEqual(760);
+  expect(optionHeight).toBeGreaterThanOrEqual(56);
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({ path: testInfo.outputPath("quiz-readability.png"), fullPage: true });
+});
