@@ -401,3 +401,64 @@ test("핵심 화면이 가로로 넘치지 않는다", async ({ page }) => {
   await expect(page.getByRole("heading", { name: passages[0].title })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+test("quiz text and options keep readable dimensions", async ({ page }, testInfo) => {
+  await mockApi(page, { authenticated: true });
+  await page.goto("/quiz");
+  await page.getByRole("button", { name: new RegExp(passages[0].title) }).click();
+
+  const passageMetrics = await page.locator("article p").first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      fontSize: Number.parseFloat(style.fontSize),
+      lineHeight: Number.parseFloat(style.lineHeight),
+      width: element.getBoundingClientRect().width,
+    };
+  });
+  const optionHeight = await page.locator("fieldset label").first().evaluate((element) =>
+    element.getBoundingClientRect().height,
+  );
+
+  expect(passageMetrics.fontSize).toBeGreaterThanOrEqual(17);
+  expect(passageMetrics.lineHeight / passageMetrics.fontSize).toBeGreaterThanOrEqual(1.8);
+  expect(passageMetrics.width).toBeLessThanOrEqual(760);
+  expect(optionHeight).toBeGreaterThanOrEqual(56);
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({ path: testInfo.outputPath("quiz-readability.png"), fullPage: true });
+});
+
+test("quiz draft is restored after reload", async ({ page }) => {
+  await mockApi(page, { authenticated: true });
+  await page.goto("/quiz");
+  await page.getByRole("button", { name: new RegExp(passages[0].title) }).click();
+
+  const selectedOption = page.locator("fieldset").first().getByRole("radio").nth(1);
+  await selectedOption.check();
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: passages[0].title })).toBeVisible();
+  await expect(page.locator("fieldset").first().getByRole("radio").nth(1)).toBeChecked();
+});
+
+test("mobile progress and passage review stay available", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "mobile only");
+
+  await mockApi(page, { authenticated: true });
+  await page.goto("/quiz");
+  await page.getByRole("button", { name: new RegExp(passages[0].title) }).click();
+
+  const tools = page.getByTestId("mobile-quiz-tools");
+  await expect(tools).toBeVisible();
+  await expect(tools).toContainText("0 / 3 답변");
+  await page.locator("fieldset").first().getByRole("radio").first().check();
+  await expect(tools).toContainText("1 / 3 답변");
+  await page.screenshot({ path: testInfo.outputPath("mobile-quiz-progress.png"), fullPage: true });
+
+  await page.getByTestId("open-passage-review").click();
+  const dialog = page.getByTestId("mobile-passage-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(passages[0].content);
+  await page.screenshot({ path: testInfo.outputPath("mobile-passage-review.png") });
+  await page.getByTestId("close-passage-review").click();
+  await expect(dialog).toBeHidden();
+});
