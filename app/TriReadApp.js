@@ -23,6 +23,73 @@ import { AdminQuizHub } from "./features/admin/AdminQuizHub";
 import { OrbitHub } from "./features/history/OrbitHub";
 import styles from "./page.module.css";
 
+const QUIZ_DRAFT_PREFIX = "tri-read-quiz-draft";
+
+function getQuizDraftKey(userId, quizSetId, passageId) {
+  return `${QUIZ_DRAFT_PREFIX}:${userId}:${quizSetId}:${passageId}`;
+}
+
+function readQuizDraft(userId, quiz, passageIndex) {
+  const passage = quiz?.passages?.[passageIndex];
+  if (typeof window === "undefined" || !userId || !passage) {
+    return {};
+  }
+
+  try {
+    const saved = window.localStorage.getItem(
+      getQuizDraftKey(userId, quiz.quizSetId, passage.passageId),
+    );
+    const draft = saved ? JSON.parse(saved) : {};
+    return draft && typeof draft === "object" && !Array.isArray(draft) ? draft : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveQuizDraft(userId, quiz, passageIndex, selections) {
+  const passage = quiz?.passages?.[passageIndex];
+  if (typeof window === "undefined" || !userId || !passage) {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getQuizDraftKey(userId, quiz.quizSetId, passage.passageId),
+    JSON.stringify(selections),
+  );
+}
+
+function removeQuizDraft(userId, quiz, passageIndex) {
+  const passage = quiz?.passages?.[passageIndex];
+  if (typeof window === "undefined" || !userId || !passage) {
+    return;
+  }
+
+  window.localStorage.removeItem(
+    getQuizDraftKey(userId, quiz.quizSetId, passage.passageId),
+  );
+}
+
+function findQuizDraft(userId, quiz) {
+  const attempts = Array.isArray(quiz?.attempts)
+    ? quiz.attempts
+    : quiz?.attempt
+      ? [quiz.attempt]
+      : [];
+  const completedPassageIds = new Set(attempts.map((attempt) => attempt.passageId));
+
+  for (let index = 0; index < (quiz?.passages?.length || 0); index += 1) {
+    if (completedPassageIds.has(quiz.passages[index].passageId)) {
+      continue;
+    }
+    const selections = readQuizDraft(userId, quiz, index);
+    if (Object.keys(selections).length > 0) {
+      return { passageIndex: index, selections };
+    }
+  }
+
+  return null;
+}
+
 export default function TriReadApp() {
   const pathname = usePathname();
   const router = useRouter();
@@ -96,15 +163,16 @@ export default function TriReadApp() {
   const [adminActionLoading, setAdminActionLoading] = useState("");
   const [adminError, setAdminError] = useState("");
 
-  async function loadQuiz() {
+  async function loadQuiz(currentUserId = user?.userId) {
     setQuizLoading(true);
     setQuizError("");
     try {
       const todayQuiz = await apiFetch("/api/quizzes/today");
+      const draft = findQuizDraft(currentUserId, todayQuiz);
       setQuiz(todayQuiz);
-      setSelections({});
+      setSelections(draft?.selections || {});
       setResult(null);
-      setActivePassage(null);
+      setActivePassage(draft?.passageIndex ?? null);
     } catch (error) {
       setQuiz(null);
       setQuizError(getErrorMessage(error));
@@ -588,7 +656,7 @@ export default function TriReadApp() {
         if (pathname === "/") {
           router.replace(VIEW_PATHS.quiz);
         }
-        await Promise.all([loadQuiz(), loadStreak(), loadWeekOrbit()]);
+        await Promise.all([loadQuiz(currentUser.userId), loadStreak(), loadWeekOrbit()]);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 401) {
           setBootError("백엔드 서버 연결을 확인해 주세요.");
@@ -606,7 +674,7 @@ export default function TriReadApp() {
     if (pathname === "/") {
       router.replace(VIEW_PATHS.quiz);
     }
-    await Promise.all([loadQuiz(), loadStreak(), loadWeekOrbit()]);
+    await Promise.all([loadQuiz(authenticatedUser.userId), loadStreak(), loadWeekOrbit()]);
   }
 
   async function handleLogout() {
@@ -645,7 +713,23 @@ export default function TriReadApp() {
     if (result) {
       return;
     }
-    setSelections((current) => ({ ...current, [questionId]: optionId }));
+    setSelections((current) => {
+      const nextSelections = { ...current, [questionId]: optionId };
+      saveQuizDraft(user.userId, quiz, activePassage, nextSelections);
+      return nextSelections;
+    });
+    setSubmitError("");
+  }
+
+  function handleChoosePassage(index) {
+    setActivePassage(index);
+    setSelections(readQuizDraft(user.userId, quiz, index));
+    setSubmitError("");
+  }
+
+  function handleChangeArea() {
+    setActivePassage(null);
+    setSelections({});
     setSubmitError("");
   }
 
@@ -666,6 +750,7 @@ export default function TriReadApp() {
         method: "POST",
         body: JSON.stringify({ answers }),
       });
+      removeQuizDraft(user.userId, quiz, activePassage);
       setResult(quizResult);
       await Promise.all([loadStreak(), loadWeekOrbit()]);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -799,11 +884,7 @@ export default function TriReadApp() {
         activePassage === null ? (
           <PassagePicker
             quiz={quiz}
-            onChoose={(index) => {
-              setActivePassage(index);
-              setSelections({});
-              setSubmitError("");
-            }}
+            onChoose={handleChoosePassage}
           />
         ) : (
           <div className={styles.appBody}>
@@ -811,11 +892,7 @@ export default function TriReadApp() {
               quiz={quiz}
               selectedCount={Object.keys(selections).length}
               activePassage={activePassage}
-              onChangeArea={() => {
-                setActivePassage(null);
-                setSelections({});
-                setSubmitError("");
-              }}
+              onChangeArea={handleChangeArea}
               result={result}
               weekOrbit={weekOrbit}
             />
@@ -828,12 +905,12 @@ export default function TriReadApp() {
               onSubmit={handleSubmit}
               submitting={submitting}
               submitError={submitError}
-              onContinue={loadQuiz}
+              onContinue={() => loadQuiz(user.userId)}
             />
           </div>
         )
       ) : (
-        <EmptyQuiz message={quizError} onRetry={loadQuiz} />
+        <EmptyQuiz message={quizError} onRetry={() => loadQuiz(user.userId)} />
       )}
       <AccountPinDialog open={accountDialogOpen} onClose={() => setAccountDialogOpen(false)} onChanged={handlePinChanged} />
     </main>

@@ -13,9 +13,10 @@ import {
   Orbit,
   Send,
   Sparkles,
+  X,
   XCircle,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { WEEKDAYS, PASSAGE_AREAS, formatToday } from "../../lib/triReadUi";
 import styles from "../../page.module.css";
 
@@ -252,6 +253,17 @@ export function QuizWorkspace({
   );
   const selectedCount = Object.keys(selections).length;
   const area = PASSAGE_AREAS[activePassage] || PASSAGE_AREAS[0];
+  const [passageOpen, setPassageOpen] = useState(false);
+  const totalQuestions = passage.questions.length;
+  const nextQuestionIndex = passage.questions.findIndex(
+    (question) => !selections[question.questionId],
+  );
+  const progressCount = result ? totalQuestions : selectedCount;
+  const progressLabel = result
+    ? "채점 완료"
+    : nextQuestionIndex === -1
+      ? "제출 준비"
+      : `다음 Q${nextQuestionIndex + 1}`;
 
   return (
     <section className={styles.quizWorkspace}>
@@ -282,6 +294,54 @@ export function QuizWorkspace({
         </div>
         <span className={styles.topicBadge}>{passage.topic}</span>
       </div>
+
+      <div className={styles.mobileQuizTools} data-testid="mobile-quiz-tools">
+        <div className={styles.mobileQuizProgress}>
+          <div>
+            <span>{progressLabel}</span>
+            <strong>{progressCount} / {totalQuestions} 답변</strong>
+          </div>
+          <div className={styles.mobileProgressTrack} aria-hidden="true">
+            <span style={{ width: `${(progressCount / totalQuestions) * 100}%` }} />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPassageOpen(true)}
+          data-testid="open-passage-review"
+        >
+          <BookOpen size={16} />
+          지문 다시 보기
+        </button>
+      </div>
+
+      {passageOpen && (
+        <div
+          className={styles.mobilePassageOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-passage-title"
+          data-testid="mobile-passage-dialog"
+        >
+          <section className={styles.mobilePassageDialog}>
+            <header>
+              <div>
+                <small>{area.label}</small>
+                <h2 id="mobile-passage-title">{passage.title}</h2>
+              </div>
+              <button
+                type="button"
+                aria-label="지문 닫기"
+                onClick={() => setPassageOpen(false)}
+                data-testid="close-passage-review"
+              >
+                <X size={20} />
+              </button>
+            </header>
+            <p>{passage.content}</p>
+          </section>
+        </div>
+      )}
 
       <div className={styles.readingLayout}>
         <article className={styles.passageText}>

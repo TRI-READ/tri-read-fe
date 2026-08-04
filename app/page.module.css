@@ -912,6 +912,11 @@
   font-weight: 850;
 }
 
+.mobileQuizTools,
+.mobilePassageOverlay {
+  display: none;
+}
+
 .readingLayout {
   display: block;
   min-height: 0;
@@ -2628,6 +2633,133 @@
   .quizHeading h1 {
     font-size: 24px;
     line-height: 1.45;
+  }
+
+  .mobileQuizTools {
+    position: sticky;
+    z-index: 18;
+    top: 66px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 18px -18px 0;
+    padding: 12px 18px;
+    border-top: 1px solid #e1e6e4;
+    border-bottom: 1px solid #dce2e1;
+    background: rgba(255, 255, 255, 0.97);
+  }
+
+  .mobileQuizProgress {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .mobileQuizProgress > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #66767c;
+    font-size: 12px;
+  }
+
+  .mobileQuizProgress strong {
+    color: #173138;
+    font-size: 12px;
+  }
+
+  .mobileProgressTrack {
+    height: 4px;
+    overflow: hidden;
+    background: #e4eae8;
+  }
+
+  .mobileProgressTrack span {
+    display: block;
+    height: 100%;
+    background: #0e8178;
+    transition: width 180ms ease;
+  }
+
+  .mobileQuizTools > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid #b8d2cd;
+    border-radius: 7px;
+    background: #eff8f6;
+    color: #0e766e;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .mobilePassageOverlay {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    align-items: end;
+    padding: 16px;
+    background: rgba(12, 27, 34, 0.72);
+  }
+
+  .mobilePassageDialog {
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .mobilePassageDialog header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #dfe5e3;
+  }
+
+  .mobilePassageDialog small {
+    color: #0e766e;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .mobilePassageDialog h2 {
+    margin: 5px 0 0;
+    color: #172a31;
+    font-size: 20px;
+    line-height: 1.4;
+  }
+
+  .mobilePassageDialog header button {
+    display: grid;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid #d6dfdc;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #52656c;
+    cursor: pointer;
+  }
+
+  .mobilePassageDialog > p {
+    margin: 20px 0 4px;
+    color: #1f3037;
+    font-size: 17px;
+    line-height: 1.9;
+    overflow-wrap: break-word;
+    white-space: pre-line;
+    word-break: keep-all;
   }
 
   .passageText {
