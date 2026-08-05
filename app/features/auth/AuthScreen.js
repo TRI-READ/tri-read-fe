@@ -1,11 +1,11 @@
 "use client";
 
-import { BookOpen, ChevronRight, LogIn, UserPlus } from "lucide-react";
+import { BookOpen, Check, ChevronRight, LogIn, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { PASSAGE_AREAS, getErrorMessage } from "../../lib/triReadUi";
+import { getErrorMessage } from "../../lib/triReadUi";
 import { Brand } from "../../components/AppShell";
-import styles from "../../page.module.css";
+import styles from "./AuthScreen.module.css";
 
 export function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }) {
   const [loginName, setLoginName] = useState("");
@@ -43,47 +43,23 @@ export function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }
 
   return (
     <main className={styles.authShell}>
-      <section className={styles.authVisual} aria-label="TRI:READ 서비스 소개">
+      <header className={styles.authTop}>
         <Brand />
-        <div className={styles.orbitVisual} aria-hidden="true">
-          <span className={styles.orbitLineOne} />
-          <span className={styles.orbitLineTwo} />
-          <span className={styles.orbitPlanet}>
-            <BookOpen size={27} />
-          </span>
-          <span className={styles.starOne} />
-          <span className={styles.starTwo} />
-          <span className={styles.starThree} />
-        </div>
-        <div className={styles.authIntro}>
-          <p className={styles.authIntroEyebrow}>DAILY READING</p>
-          <h2>하루 한 편, 부담 없이 읽어요</h2>
-          <p className={styles.authIntroDescription}>
-            세 영역 중 하나를 골라 지문 1개와 문제 3개를 풉니다.
-          </p>
-          <div className={styles.authFacts} aria-label="학습 구성">
-            <span><strong>1</strong> 지문</span>
-            <span><strong>3</strong> 문제</span>
-            <span><strong>10~15</strong>분</span>
-          </div>
-          <div className={styles.authAreas} aria-label="선택 가능한 영역">
-            {PASSAGE_AREAS.map(({ label, icon: Icon }) => (
-              <span key={label}>
-                <Icon size={15} />
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+        <p>출퇴근길에 끝내는 고3 독해 루틴</p>
+      </header>
 
       <section className={styles.authPanel}>
-        <div className={styles.mobileBrand}>
-          <Brand />
-        </div>
         <div className={styles.authFormWrap}>
-          <p className={styles.eyebrow}>WEEKDAY READING</p>
+          <span className={styles.authIcon} aria-hidden="true"><BookOpen size={21} /></span>
+          <p className={styles.eyebrow}>오늘 학습</p>
           <h1>{mode === "login" ? "오늘의 독해를 이어가세요" : "가벼운 독해 습관을 시작하세요"}</h1>
+          <p className={styles.authDescription}>한 영역을 골라 지문 1개와 문제 3개를 풀어요.</p>
+
+          <div className={styles.authFacts} aria-label="학습 구성">
+            <span><Check size={14} /> 지문 1개</span>
+            <span><Check size={14} /> 문제 3개</span>
+            <span><Check size={14} /> 약 15분</span>
+          </div>
 
           <div className={styles.authTabs} role="tablist" aria-label="인증 방식">
             <button
@@ -113,7 +89,7 @@ export function AuthScreen({ mode, onModeChange, onAuthenticated, initialError }
                 onChange={(event) => setLoginName(event.target.value)}
                 minLength={4}
                 maxLength={30}
-                pattern="[A-Za-z0-9._-]+"
+                pattern="(?:[A-Za-z0-9._]|-)+"
                 autoComplete="username"
                 placeholder="reader01"
                 required

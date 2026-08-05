@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { VIEW_PATHS } from "../lib/triReadUi";
-import styles from "../page.module.css";
+import styles from "./AppShell.module.css";
 
 export function Brand() {
   return (
@@ -24,7 +24,7 @@ export function Brand() {
       </span>
       <span>
         <strong>TRI:READ</strong>
-        <small>Study Orbit</small>
+        <small>매일 한 편</small>
       </span>
     </div>
   );

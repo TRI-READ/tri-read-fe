@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { WEEKDAYS, PASSAGE_AREAS, formatToday } from "../../lib/triReadUi";
-import styles from "../../page.module.css";
+import styles from "./QuizViews.module.css";
 
 export function WeekOrbit({ days = [] }) {
   const completedDates = new Set(
@@ -77,7 +77,7 @@ export function PassagePicker({ quiz, onChoose }) {
   return (
     <section className={styles.passagePicker}>
       <header className={styles.passagePickerHeader}>
-        <p className={styles.eyebrow}>{primaryCompleted ? "TODAY COMPLETE" : "TODAY'S READING"}</p>
+        <p className={styles.eyebrow}>{primaryCompleted ? "오늘 기본 학습 완료" : formatToday()}</p>
         <h1>
           {allCompleted
             ? "오늘 준비된 글을 모두 읽었어요"
@@ -134,7 +134,7 @@ export function PassagePicker({ quiz, onChoose }) {
             >
               <span className={styles.passageChoiceIcon}><AreaIcon size={23} /></span>
               <span className={styles.passageChoiceBody}>
-                <small>{area.label}{primaryCompleted ? " · BONUS" : ""}</small>
+                <small>{area.label}{primaryCompleted ? " · 보너스" : ""}</small>
                 <strong>{passage.title}</strong>
                 <p>{area.description}</p>
               </span>
@@ -274,7 +274,7 @@ export function QuizWorkspace({
             <span>/ 3</span>
           </div>
           <div>
-            <p className={styles.eyebrow}>{result.attemptType === "BONUS" ? "BONUS COMPLETE" : "TODAY COMPLETE"}</p>
+            <p className={styles.eyebrow}>{result.attemptType === "BONUS" ? "보너스 학습 완료" : "오늘 학습 완료"}</p>
             <h1>
               {result.attemptType === "BONUS"
                 ? "보너스 지문까지 읽어냈어요"
@@ -371,7 +371,7 @@ export function QuizWorkspace({
       {result && result.sources?.length > 0 && (
         <section className={styles.quizSources}>
           <div>
-            <p className={styles.eyebrow}>REFERENCES</p>
+            <p className={styles.eyebrow}>참고 자료</p>
             <h2>이 지문을 만들 때 참고한 자료</h2>
             <span>문장을 그대로 옮기지 않고 핵심 사실을 바탕으로 새로 구성했어요.</span>
           </div>
@@ -423,7 +423,7 @@ export function CompletedView({ quiz, attempts = getQuizAttempts(quiz) }) {
       <div className={styles.completedReadingList}>
         <div className={styles.completedReadingHeading}>
           <div>
-            <p className={styles.eyebrow}>TODAY'S READING</p>
+            <p className={styles.eyebrow}>학습 기록</p>
             <h2>오늘 읽은 글</h2>
           </div>
           <span>{completedPassages.length}개 지문</span>

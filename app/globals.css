@@ -1,6 +1,19 @@
 :root {
-  --background: #f4f6f5;
-  --foreground: #17242b;
+  --background: #f5f6f2;
+  --foreground: #20292c;
+  --surface: #ffffff;
+  --surface-subtle: #eef1ed;
+  --border: #d9ded8;
+  --border-strong: #bdc7bf;
+  --muted: #68736f;
+  --accent: #16766f;
+  --accent-strong: #0f5f59;
+  --accent-soft: #e7f2ef;
+  --reward: #d76f28;
+  --reward-soft: #fff0e4;
+  --danger: #b64b45;
+  --danger-soft: #fff0ee;
+  --brand: #17303f;
 }
 
 * {
@@ -18,7 +31,9 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR",
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  letter-spacing: 0;
 }
 
 button,
@@ -34,7 +49,7 @@ button {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid rgba(14, 118, 110, 0.2);
+  outline: 3px solid rgba(22, 118, 111, 0.22);
   outline-offset: 2px;
 }
 
