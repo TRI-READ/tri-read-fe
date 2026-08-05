@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PassageParagraphs } from "../../components/PassageParagraphs";
 import { WEEKDAYS, PASSAGE_AREAS, formatToday } from "../../lib/triReadUi";
 import styles from "./QuizViews.module.css";
 
@@ -338,7 +339,7 @@ export function QuizWorkspace({
                 <X size={20} />
               </button>
             </header>
-            <p>{passage.content}</p>
+            <PassageParagraphs content={passage.content} className={styles.passageBody} />
           </section>
         </div>
       )}
@@ -351,7 +352,7 @@ export function QuizWorkspace({
             <Clock3 size={17} />
             <span>권장 15분</span>
           </div>
-          <p>{passage.content}</p>
+          <PassageParagraphs content={passage.content} className={styles.passageBody} />
         </article>
 
         <div className={styles.questionsPane}>
@@ -445,7 +446,7 @@ export function CompletedView({ quiz, attempts = getQuizAttempts(quiz) }) {
                 </span>
               </summary>
 
-              <p className={styles.completedPassageText}>{passage.content}</p>
+              <PassageParagraphs content={passage.content} className={styles.completedPassageText} />
 
               <details className={styles.completedQuestions}>
                 <summary>

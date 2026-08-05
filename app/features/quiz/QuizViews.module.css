@@ -361,9 +361,9 @@ button.passageChoice:hover {
   color: var(--accent);
 }
 
-.passageText > p,
+.passageBody,
 .completedPassageText,
-.mobilePassageDialog > p {
+.mobilePassageDialog > .passageBody {
   max-width: 65ch;
   margin: 0;
   color: #293431;
@@ -371,6 +371,16 @@ button.passageChoice:hover {
   line-height: 1.92;
   word-break: keep-all;
   overflow-wrap: anywhere;
+}
+
+.passageBody > p,
+.completedPassageText > p {
+  margin: 0;
+}
+
+.passageBody > p + p,
+.completedPassageText > p + p {
+  margin-top: 1.15em;
 }
 
 .questionsPane {

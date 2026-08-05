@@ -11,6 +11,7 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
+import { PassageParagraphs } from "../../components/PassageParagraphs";
 import styles from "../../page.module.css";
 
 export function ReviewHub({
@@ -130,14 +131,7 @@ export function ReviewHub({
                   <small>문제의 근거를 본문에서 다시 확인해 보세요.</small>
                   <ChevronRight size={18} aria-hidden="true" />
                 </summary>
-                <div>
-                  {selectedReview.passageContent
-                    .split(/\n+/)
-                    .filter(Boolean)
-                    .map((paragraph, index) => (
-                      <p key={`${selectedReview.reviewId}-passage-${index}`}>{paragraph}</p>
-                    ))}
-                </div>
+                <PassageParagraphs content={selectedReview.passageContent} />
               </details>
             )}
 
