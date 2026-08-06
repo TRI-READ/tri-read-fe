@@ -167,7 +167,9 @@ export default function TriReadApp() {
     setQuizLoading(true);
     setQuizError("");
     try {
-      const todayQuiz = await apiFetch("/api/quizzes/today");
+      const todayQuiz = await apiFetch("/api/quizzes/today", {
+        method: "POST",
+      });
       const draft = findQuizDraft(currentUserId, todayQuiz);
       setQuiz(todayQuiz);
       setSelections(draft?.selections || {});
