@@ -167,7 +167,7 @@ async function mockApi(page, options = {}) {
       state.authenticated = true;
       return route.fulfill({ json: user });
     }
-    if (path === "/api/quizzes/today") {
+    if (path === "/api/quizzes/today" && method === "POST") {
       if (!state.quizAvailable) {
         return route.fulfill({
           status: 404,
