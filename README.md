@@ -2,6 +2,17 @@
 
 TRI:READ의 Next.js 웹 애플리케이션입니다. 사용자는 평일마다 세 영역 중 한 지문을 골라 3문제를 풀고, 원하면 나머지 두 지문도 보너스로 이어서 풀 수 있습니다.
 
+## 주요 화면
+
+| 로그인 | 오늘의 퀴즈 |
+| --- | --- |
+| ![로그인 화면](docs/images/login.png) | ![오늘의 퀴즈 화면](docs/images/today-quiz.png) |
+| 학습 기록 | 오답 복습 |
+| ![주간 학습 기록](docs/images/study-history.png) | ![지문을 함께 보는 오답 복습](docs/images/wrong-answer-review.png) |
+
+- 운영 주소: https://tri-read.duckdns.org
+- [사용자 흐름, 프론트 구조와 문제 해결 기록](docs/portfolio.md)
+
 ## 기술 스택
 
 - Next.js 16 App Router
@@ -99,6 +110,8 @@ npm audit --omit=dev --audit-level=high
 
 Playwright 테스트의 API 응답은 격리된 가짜 응답을 사용하므로 운영 DB를 변경하지 않습니다.
 
+2026-08-09 로컬 `dev` 기준으로 프로덕션 빌드가 성공했고, 데스크톱·모바일 Playwright 시나리오 21개가 통과했으며 1개는 중복 실행을 피하기 위해 의도적으로 제외됐습니다.
+
 OCI용 정적 결과물은 다음과 같이 생성합니다.
 
 ```powershell
@@ -129,8 +142,6 @@ dev push -> dev CI -> 승격 PR -> 필수 검사 -> main 자동 병합 -> main C
 - 뉴스 참고 출처는 퀴즈 제출이 끝난 뒤에만 사용자에게 공개합니다.
 - `npm audit`, Playwright, 빌드, Dependabot, CodeQL 검사를 CI에서 수행합니다.
 - OCI 배포는 `OCI_KNOWN_HOSTS`에 등록된 SSH 호스트 키만 신뢰합니다.
-
-운영 주소: https://tri-read.duckdns.org
 
 ## 저장소
 
