@@ -103,13 +103,12 @@ jobs:
         run: |
           git fetch origin main
           MAIN_SHA="$(git rev-parse origin/main)"
-          gh workflow run frontend-ci.yml --ref main
 
           for attempt in $(seq 1 30); do
             RUN_ID="$(gh run list \
               --workflow frontend-ci.yml \
               --branch main \
-              --event workflow_dispatch \
+              --event push \
               --limit 20 \
               --json databaseId,headSha \
               --jq ".[] | select(.headSha == \"$MAIN_SHA\") | .databaseId" \
