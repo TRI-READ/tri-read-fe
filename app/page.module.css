@@ -3366,6 +3366,38 @@
 .adminPromptActivations p span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adminPromptActivations p time { color: #83918e; font-size: 9px; }
 
+.qualityFilters { display: flex; align-items: end; gap: 8px; margin-bottom: 20px; padding: 14px; border: 1px solid #ccd7d4; background: #fff; }
+.qualityFilters label { display: grid; gap: 6px; color: #526762; font-size: 11px; font-weight: 750; }
+.qualityFilters label:nth-child(2) { flex: 1; }
+.qualityFilters select, .qualityFilters input { min-width: 150px; height: 36px; padding: 0 10px; border: 1px solid #c3d0cd; color: #263d37; background: #fff; font: inherit; }
+.qualityFilters input { width: 100%; }
+.qualityFilters button { height: 36px; padding: 0 14px; border: 1px solid #b9c9c5; color: #36534c; background: #fff; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.qualityFilters button[type="submit"] { border-color: #147a68; color: #fff; background: #147a68; }
+.qualityList { display: grid; gap: 12px; }
+.qualityItem { border: 1px solid #cbd7d4; background: #fff; }
+.qualityItem > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 18px 20px; border-bottom: 1px solid #dbe3e1; }
+.qualityItem > header > div { min-width: 0; }
+.qualityItem > header span, .qualityItem > header p { color: #70817d; font-size: 10px; }
+.qualityItem h2 { margin: 6px 0; color: #183a33; font-size: 16px; line-height: 1.45; }
+.qualityItem > header p { margin: 0; }
+.qualityStatus { flex: 0 0 auto; padding: 5px 8px; border: 1px solid #b7c6c2; color: #53645f !important; background: #f2f5f4; font-weight: 800; }
+.qualityStatusREVIEW_REQUIRED { color: #9d3636 !important; border-color: #e1a7a7; background: #fff1f1; }
+.qualityStatusDATA_INSUFFICIENT { color: #7a5c16 !important; border-color: #ddc278; background: #fff9e7; }
+.qualityStatusNORMAL { color: #116b59 !important; border-color: #8bc9bb; background: #eaf8f4; }
+.qualitySummary { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #dbe3e1; }
+.qualitySummary div { padding: 12px 20px; border-right: 1px solid #e1e8e6; }
+.qualitySummary div:last-child { border-right: 0; }
+.qualitySummary span { display: block; margin-bottom: 3px; color: #7a8986; font-size: 9px; }
+.qualitySummary strong { color: #23453e; font-size: 15px; }
+.qualityReasons { margin: 0; padding: 13px 20px 13px 38px; border-bottom: 1px solid #ead8d5; color: #963e38; background: #fff7f5; font-size: 11px; line-height: 1.6; }
+.qualityOptions { display: grid; gap: 9px; padding: 16px 20px 18px; }
+.qualityOptions > div { display: grid; grid-template-columns: minmax(170px, 1.2fr) minmax(120px, 1fr) 88px; align-items: center; gap: 12px; color: #50645f; font-size: 11px; }
+.qualityOptions > div > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qualityOptions > div > div { height: 7px; overflow: hidden; background: #e7eeec; }
+.qualityOptions i { display: block; height: 100%; background: #75c5b3; }
+.qualityOptions b { color: #435b55; text-align: right; }
+.qualityCorrectOption { color: #0c7562; font-weight: 800; }
+
 @media (max-width: 900px) {
   .adminHub { grid-template-columns: 1fr; }
   .adminRail { border-right: 0; }
@@ -3393,6 +3425,14 @@
   .adminTwoColumns, .adminOptions, .adminQuizList, .adminMetrics { grid-template-columns: 1fr; }
   .adminMetrics div { border-right: 0; border-bottom: 1px solid #d9e1df; }
   .adminMetrics div:last-child { border-bottom: 0; }
+  .qualityFilters { align-items: stretch; flex-direction: column; }
+  .qualityFilters select, .qualityFilters input { width: 100%; }
+  .qualityItem > header { flex-direction: column; }
+  .qualitySummary { grid-template-columns: repeat(3, 1fr); }
+  .qualitySummary div { padding: 10px; }
+  .qualityOptions > div { grid-template-columns: 1fr 72px; }
+  .qualityOptions > div > div { grid-column: 1 / -1; grid-row: 2; }
+  .qualityOptions b { grid-column: 2; grid-row: 1; }
   .adminGenerateControls { align-items: stretch; flex-direction: column; }
   .adminLogFilters { align-items: stretch; flex-direction: column; }
   .adminLogFilters select, .adminLogFilters input { width: 100%; }

@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   Copy,
   Database,
@@ -47,6 +48,12 @@ const ADMIN_VALIDATION_LABELS = {
   AI: "AI 품질",
 };
 
+const QUALITY_STATUS_LABELS = {
+  REVIEW_REQUIRED: "검토 필요",
+  DATA_INSUFFICIENT: "데이터 부족",
+  NORMAL: "정상",
+};
+
 export function AdminPagination({ pagination, onPageChange, dark = false }) {
   if (!pagination || pagination.totalElements === 0) return null;
   const currentPage = pagination.page + 1;
@@ -75,6 +82,94 @@ export function AdminPagination({ pagination, onPageChange, dark = false }) {
           <ArrowRight size={15} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter, onPageChange }) {
+  const [status, setStatus] = useState(filters?.status || "");
+  const [keyword, setKeyword] = useState(filters?.keyword || "");
+  const questions = qualityPage?.page?.items || [];
+
+  useEffect(() => {
+    setStatus(filters?.status || "");
+    setKeyword(filters?.keyword || "");
+  }, [filters?.status, filters?.keyword]);
+
+  function submit(event) {
+    event.preventDefault();
+    onFilter({ status, keyword: keyword.trim() });
+  }
+
+  return (
+    <div className={styles.adminWorkspace}>
+      <header className={styles.adminEditorHeader}>
+        <div>
+          <span>LEARNING DATA</span>
+          <h1>퀴즈 품질</h1>
+          <p>실제 풀이 결과에서 너무 쉽거나 어려운 문항과 오답 쏠림을 확인합니다.</p>
+        </div>
+      </header>
+      {error && <div className={styles.adminError}>{error}</div>}
+      <div className={styles.adminMetrics}>
+        <div><span>조회 문항</span><strong>{qualityPage?.page?.totalElements || 0}</strong></div>
+        <div><span>검토 필요</span><strong>{qualityPage?.reviewRequiredCount || 0}</strong></div>
+        <div><span>데이터 부족</span><strong>{qualityPage?.dataInsufficientCount || 0}</strong></div>
+      </div>
+
+      <form className={styles.qualityFilters} onSubmit={submit}>
+        <label>상태<select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="">전체</option>
+          <option value="REVIEW_REQUIRED">검토 필요</option>
+          <option value="DATA_INSUFFICIENT">데이터 부족</option>
+          <option value="NORMAL">정상</option>
+        </select></label>
+        <label>검색<input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="지문 제목, 주제, 문제" /></label>
+        <button type="submit">조회</button>
+        <button type="button" onClick={() => {
+          setStatus("");
+          setKeyword("");
+          onFilter({ status: "", keyword: "" });
+        }}>초기화</button>
+      </form>
+
+      {loading && !questions.length ? <div className={styles.adminEmpty}>품질 정보를 불러오는 중입니다.</div>
+        : questions.length ? <div className={styles.qualityList}>
+          {questions.map((question) => (
+            <article className={styles.qualityItem} key={question.questionId}>
+              <header>
+                <div>
+                  <span>{question.challengeDate} · {question.variantCode}형 · 지문 {question.passagePosition}</span>
+                  <h2>Q{question.questionPosition}. {question.questionContent}</h2>
+                  <p>{question.passageTitle || "제목 없음"} · {question.topic || "주제 미분류"}</p>
+                </div>
+                <span className={`${styles.qualityStatus} ${styles[`qualityStatus${question.status}`] || ""}`}>
+                  {QUALITY_STATUS_LABELS[question.status] || question.status}
+                </span>
+              </header>
+              <div className={styles.qualitySummary}>
+                <div><span>응답</span><strong>{question.responseCount}건</strong></div>
+                <div><span>정답률</span><strong>{Math.round(question.correctRate)}%</strong></div>
+                <div><span>오답</span><strong>{question.incorrectCount}건</strong></div>
+              </div>
+              {question.reasons?.length > 0 && <ul className={styles.qualityReasons}>
+                {question.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+              </ul>}
+              <div className={styles.qualityOptions}>
+                {question.options.map((option) => (
+                  <div key={option.optionId}>
+                    <span className={option.correct ? styles.qualityCorrectOption : ""}>
+                      {option.position}. {option.content}{option.correct ? " · 정답" : ""}
+                    </span>
+                    <div><i style={{ width: `${Math.min(100, option.selectionRate)}%` }} /></div>
+                    <b>{option.selectedCount}명 · {Math.round(option.selectionRate)}%</b>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div> : <div className={styles.adminEmpty}>조건에 맞는 문항이 없습니다.</div>}
+      <AdminPagination pagination={qualityPage?.page} onPageChange={onPageChange} />
     </div>
   );
 }
@@ -309,10 +404,11 @@ export function AdminOperationsPanel({
 
 export function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
-  generationFilters, loginLocks, auditPage, operationsSummary, operationsNotificationStatus, operationsNotice,
+  generationFilters, qualityPage, qualityFilters, loginLocks, auditPage, operationsSummary, operationsNotificationStatus, operationsNotice,
   onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
   onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onGenerationFilterChange, onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations, onTestNotification,
+  onGenerationPageChange, onGenerationFilterChange, onQualityFilterChange, onQualityPageChange,
+  onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations, onLoadQuality, onTestNotification,
 }) {
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
@@ -329,6 +425,7 @@ export function AdminQuizHub({
   useEffect(() => {
     if (section === "security") onLoadSecurity(auditPage?.page || 0);
     if (section === "overview") onLoadOperations();
+    if (section === "quality") onLoadQuality(0, qualityFilters);
   }, [section]);
 
   useEffect(() => {
@@ -383,6 +480,7 @@ export function AdminQuizHub({
 
   const sectionItems = [
     ["overview", Activity, "운영 현황"],
+    ["quality", BarChart3, "퀴즈 품질"],
     ["operations", Sparkles, "퀴즈 생성"],
     ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
@@ -432,6 +530,15 @@ export function AdminQuizHub({
           error={error}
           onLoad={onLoadOperations}
           onTestNotification={onTestNotification}
+        />
+      ) : section === "quality" ? (
+        <AdminQuizQualityPanel
+          qualityPage={qualityPage}
+          filters={qualityFilters}
+          loading={loading}
+          error={error}
+          onFilter={onQualityFilterChange}
+          onPageChange={onQualityPageChange}
         />
       ) : section === "operations" ? (
         <div className={styles.adminWorkspace}>
