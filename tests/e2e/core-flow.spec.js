@@ -370,6 +370,38 @@ test("오답에서 지문을 확인하고 복습하면 학습 기록에 반영�
   await expect(page.getByText("2/3 · 복습 1/1")).toBeVisible();
 });
 
+test("학습 기록의 미래 날짜는 미완료가 아니라 예정으로 표시한다", async ({ page }) => {
+  await mockApi(page, { authenticated: true });
+  await page.route("**/api/orbit?*", async (route) => {
+    await route.fulfill({
+      json: {
+        period: "MONTH",
+        startDate: "2099-12-01",
+        endDate: "2099-12-31",
+        completedDays: 0,
+        fullyLitDays: 0,
+        days: [
+          {
+            date: "2099-12-31",
+            sourceDate: "2099-12-31",
+            weekendMakeUp: false,
+            status: "EMPTY",
+            brightness: 0,
+            score: null,
+            wrongCount: 0,
+            recoveredCount: 0,
+          },
+        ],
+      },
+    });
+  });
+
+  await page.goto("/history");
+
+  await expect(page.getByText("예정")).toBeVisible();
+  await expect(page.getByText("미완료")).toHaveCount(0);
+});
+
 test("새 그룹을 만들면 멤버와 주간 랭킹을 확인할 수 있다", async ({ page }) => {
   await mockApi(page, { authenticated: true });
   await page.goto("/groups");
