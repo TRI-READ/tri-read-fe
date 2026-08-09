@@ -144,6 +144,12 @@ export default function TriReadApp() {
   });
   const [adminGenerationFilters, setAdminGenerationFilters] = useState({ status: "", targetDate: "" });
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
+  const [adminQualityPage, setAdminQualityPage] = useState({
+    page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
+    reviewRequiredCount: 0,
+    dataInsufficientCount: 0,
+  });
+  const [adminQualityFilters, setAdminQualityFilters] = useState({ status: "", keyword: "" });
   const [adminUserPage, setAdminUserPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
@@ -411,6 +417,22 @@ export default function TriReadApp() {
       return response;
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
+  }
+  async function loadAdminQuality(page = adminQualityPage.page.page, filters = adminQualityFilters) {
+    setAdminLoading(true); setAdminError("");
+    try {
+      const params = new URLSearchParams({ page: String(page), size: "10" });
+      if (filters.status) params.set("status", filters.status);
+      if (filters.keyword) params.set("keyword", filters.keyword);
+      const response = await apiFetch(`/api/admin/quiz-quality?${params}`);
+      setAdminQualityPage(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+    finally { setAdminLoading(false); }
+  }
+  async function filterAdminQuality(filters) {
+    setAdminQualityFilters(filters);
+    return loadAdminQuality(0, filters);
   }
   async function loadAdminUsers(page = adminUserPage.page) {
     setAdminLoading(true); setAdminError("");
@@ -832,6 +854,8 @@ export default function TriReadApp() {
           userPage={adminUserPage}
           promptPage={adminPromptPage}
           generationFilters={adminGenerationFilters}
+          qualityPage={adminQualityPage}
+          qualityFilters={adminQualityFilters}
           loginLocks={adminLoginLocks}
           auditPage={adminAuditPage}
           operationsSummary={adminOperationsSummary}
@@ -858,10 +882,13 @@ export default function TriReadApp() {
           onQuizPageChange={loadAdminQuizzes}
           onGenerationPageChange={loadAdminGenerationPage}
           onGenerationFilterChange={filterAdminGeneration}
+          onQualityFilterChange={filterAdminQuality}
+          onQualityPageChange={loadAdminQuality}
           onUserPageChange={loadAdminUsers}
           onLoadSecurity={loadAdminSecurity}
           onUnlockLogin={unlockAdminLogin}
           onLoadOperations={loadAdminOperations}
+          onLoadQuality={loadAdminQuality}
           onTestNotification={testAdminNotification}
         />
       ) : view === "reviews" ? (
