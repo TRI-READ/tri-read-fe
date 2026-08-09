@@ -4,6 +4,9 @@ import { ArrowLeft, ArrowRight, Orbit } from "lucide-react";
 import styles from "../../page.module.css";
 
 export function OrbitHub({ data, period, loading, error, onPeriodChange, onMove, onReload }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const title = data
     ? period === "WEEK"
       ? `${data.startDate.replaceAll("-", ".")} - ${data.endDate.replaceAll("-", ".")}`
@@ -61,6 +64,7 @@ export function OrbitHub({ data, period, loading, error, onPeriodChange, onMove,
           <div className={`${styles.orbitGrid} ${period === "WEEK" ? styles.orbitGridWeek : ""}`}>
             {data.days.map((day) => {
               const date = new Date(`${day.date}T00:00:00`);
+              const isFuture = date > today;
               return (
                 <article className={styles.orbitDay} key={day.date}>
                   <div className={styles.planetStage}>
@@ -77,7 +81,7 @@ export function OrbitHub({ data, period, loading, error, onPeriodChange, onMove,
                     <strong>{date.getDate()}</strong>
                   </div>
                   {day.score === null ? (
-                    <small>미완료</small>
+                    <small>{isFuture ? "예정" : "미완료"}</small>
                   ) : day.status === "LIT" ? (
                     <small className={styles.orbitComplete}>{day.score}/{day.score + day.wrongCount} · 복습 완료</small>
                   ) : (
