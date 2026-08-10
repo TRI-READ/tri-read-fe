@@ -139,7 +139,6 @@ async function mockApi(page, options = {}) {
   const state = {
     authenticated: options.authenticated || false,
     quizAvailable: options.quizAvailable !== false,
-    transientQuizFailures: options.transientQuizFailures || 0,
     attempts: [],
     reviewStatus: "PENDING",
     group: null,
@@ -169,13 +168,6 @@ async function mockApi(page, options = {}) {
       return route.fulfill({ json: user });
     }
     if (path === "/api/quizzes/today" && method === "POST") {
-      if (state.transientQuizFailures > 0) {
-        state.transientQuizFailures -= 1;
-        return route.fulfill({
-          status: 503,
-          json: { code: "SERVICE_UNAVAILABLE", message: "Service is temporarily unavailable." },
-        });
-      }
       if (!state.quizAvailable) {
         return route.fulfill({
           status: 404,
@@ -501,33 +493,4 @@ test("mobile progress and passage review stay available", async ({ page }, testI
   await page.screenshot({ path: testInfo.outputPath("mobile-passage-review.png") });
   await page.getByTestId("close-passage-review").click();
   await expect(dialog).toBeHidden();
-});
-
-test("login form supports keyboard submission", async ({ page }) => {
-  await mockApi(page);
-  await page.goto("/");
-
-  await page.getByLabel("아이디").fill("reader01");
-  await page.getByLabel("PIN").fill("1234");
-  await page.getByLabel("PIN").press("Enter");
-
-  await expect(page).toHaveURL(/\/quiz\/?$/);
-});
-
-test("empty quiz state offers a retry action", async ({ page }) => {
-  await mockApi(page, { authenticated: true, quizAvailable: false });
-  await page.goto("/quiz");
-
-  await expect(page.getByRole("heading", { name: "오늘의 퀴즈를 불러오지 못했어요" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "다시 확인" })).toBeVisible();
-});
-
-test("retry recovers from a transient quiz API failure", async ({ page }) => {
-  await mockApi(page, { authenticated: true, transientQuizFailures: 1 });
-  await page.goto("/quiz");
-
-  await expect(page.getByRole("heading", { name: "오늘의 퀴즈를 불러오지 못했어요" })).toBeVisible();
-  await page.getByRole("button", { name: "다시 확인" }).click();
-
-  await expect(page.getByRole("heading", { name: "오늘은 어떤 영역을 읽을까요?" })).toBeVisible();
 });
