@@ -74,9 +74,21 @@ async function mockAdminApi(page) {
           uptimeSeconds: 60,
           version: "e2e",
           databaseSizeBytes: 0,
+          aiToday: { totalCount: 2, successCount: 2, failureCount: 0, averageLatencyMs: 420 },
+          aiDailyLimit: 6,
+          quality: { completedCount: 3, publishedCount: 3, failedCount: 0, retryCount: 1, duplicateRejectedCount: 0, averageValidationScore: 92 },
           recentFailures: [],
           recentAdminActions: [],
-          inventory: [],
+          inventory: [
+            { challengeDate: "2026-08-10", publishedCount: 3, requiredCount: 3, shortage: false },
+            { challengeDate: "2026-08-11", publishedCount: 2, requiredCount: 3, shortage: true },
+          ],
+          lastBackupRun: {
+            status: "SUCCESS",
+            message: "Encrypted backup and isolated restore verification succeeded",
+            completedAt: "2026-08-10T02:31:00Z",
+          },
+          activeLoginLocks: 0,
         },
       });
     }
@@ -119,8 +131,10 @@ async function mockAdminApi(page) {
             totalElements: 1,
             totalPages: 1,
           },
+          totalQuestionCount: 8,
           reviewRequiredCount: 1,
-          dataInsufficientCount: 0,
+          dataInsufficientCount: 2,
+          normalCount: 5,
         },
       });
     }
@@ -139,8 +153,23 @@ test("관리자는 실제 풀이 데이터로 판정된 퀴즈 품질을 확인�
   await page.getByRole("button", { name: "퀴즈 품질" }).click();
 
   await expect(page.getByRole("heading", { name: "퀴즈 품질" })).toBeVisible();
-  await expect(page.getByText("검토 필요1", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /검토 필요.*1/ })).toBeVisible();
   await expect(page.getByText("정답률이 20%로 너무 낮습니다.")).toBeVisible();
   await expect(page.getByText("2번 오답에 오답 응답의 75%가 집중되었습니다.")).toBeVisible();
   await expect(page.getByText("두 번째 선택지")).toBeVisible();
+});
+
+test("운영 현황에서 재고와 문항 품질을 확인하고 검토 화면으로 이동한다", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin");
+
+  await expect(page.getByRole("heading", { name: "운영 현황" })).toBeVisible();
+  await expect(page.getByText("1일 부족")).toBeVisible();
+  await expect(page.getByText("1개 검토 필요")).toBeVisible();
+  await expect(page.getByLabel("운영 우선 확인 항목").getByText("SUCCESS", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "검토 문항 보기" }).click();
+  await expect(page.getByRole("heading", { name: "퀴즈 품질" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /전체 문항.*8/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /정상.*5/ })).toBeVisible();
 });

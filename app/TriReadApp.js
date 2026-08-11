@@ -146,8 +146,10 @@ export default function TriReadApp() {
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
   const [adminQualityPage, setAdminQualityPage] = useState({
     page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
+    totalQuestionCount: 0,
     reviewRequiredCount: 0,
     dataInsufficientCount: 0,
+    normalCount: 0,
   });
   const [adminQualityFilters, setAdminQualityFilters] = useState({ status: "", keyword: "" });
   const [adminUserPage, setAdminUserPage] = useState({

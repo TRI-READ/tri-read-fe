@@ -90,6 +90,16 @@ function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter,
   const [status, setStatus] = useState(filters?.status || "");
   const [keyword, setKeyword] = useState(filters?.keyword || "");
   const questions = qualityPage?.page?.items || [];
+  const totalQuestionCount = qualityPage?.totalQuestionCount || 0;
+  const reviewRequiredCount = qualityPage?.reviewRequiredCount || 0;
+  const dataInsufficientCount = qualityPage?.dataInsufficientCount || 0;
+  const normalCount = qualityPage?.normalCount || 0;
+  const statusCards = [
+    ["", "전체 문항", totalQuestionCount, "All"],
+    ["REVIEW_REQUIRED", "검토 필요", reviewRequiredCount, "Review"],
+    ["DATA_INSUFFICIENT", "데이터 부족", dataInsufficientCount, "Waiting"],
+    ["NORMAL", "정상", normalCount, "Normal"],
+  ];
 
   useEffect(() => {
     setStatus(filters?.status || "");
@@ -99,6 +109,11 @@ function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter,
   function submit(event) {
     event.preventDefault();
     onFilter({ status, keyword: keyword.trim() });
+  }
+
+  function applyStatus(nextStatus) {
+    setStatus(nextStatus);
+    onFilter({ status: nextStatus, keyword: keyword.trim() });
   }
 
   return (
@@ -111,11 +126,27 @@ function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter,
         </div>
       </header>
       {error && <div className={styles.adminError}>{error}</div>}
-      <div className={styles.adminMetrics}>
-        <div><span>조회 문항</span><strong>{qualityPage?.page?.totalElements || 0}</strong></div>
-        <div><span>검토 필요</span><strong>{qualityPage?.reviewRequiredCount || 0}</strong></div>
-        <div><span>데이터 부족</span><strong>{qualityPage?.dataInsufficientCount || 0}</strong></div>
+      <div className={styles.qualityMetricGrid}>
+        {statusCards.map(([value, label, count, tone]) => (
+          <button
+            key={value || "ALL"}
+            type="button"
+            className={`${styles.qualityMetricCard} ${styles[`qualityMetric${tone}`]} ${status === value ? styles.qualityMetricActive : ""}`}
+            onClick={() => applyStatus(value)}
+            aria-pressed={status === value}
+          >
+            <span>{label}</span>
+            <strong>{count}</strong>
+            <small>{value ? "해당 문항만 보기" : "발행 문항 기준"}</small>
+          </button>
+        ))}
       </div>
+
+      <section className={styles.qualityPolicy} aria-label="문항 품질 판정 기준">
+        <div><strong>검토 필요</strong><span>응답 5건 이상에서 정답률이 30% 미만·90% 초과이거나 특정 오답에 70% 이상 집중</span></div>
+        <div><strong>데이터 부족</strong><span>응답이 5건 미만이라 아직 난이도를 판단하기 어려운 문항</span></div>
+        <div><strong>운영 원칙</strong><span>지표는 검토 우선순위만 제시하며 문항을 자동 삭제하거나 발행 취소하지 않음</span></div>
+      </section>
 
       <form className={styles.qualityFilters} onSubmit={submit}>
         <label>상태<select value={status} onChange={(event) => setStatus(event.target.value)}>
@@ -132,6 +163,11 @@ function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter,
           onFilter({ status: "", keyword: "" });
         }}>초기화</button>
       </form>
+
+      <div className={styles.qualityResultHeading}>
+        <div><span>REVIEW QUEUE</span><h2>{status ? QUALITY_STATUS_LABELS[status] : "검토 우선순위"}</h2></div>
+        <strong>{qualityPage?.page?.totalElements || 0}개 문항</strong>
+      </div>
 
       {loading && !questions.length ? <div className={styles.adminEmpty}>품질 정보를 불러오는 중입니다.</div>
         : questions.length ? <div className={styles.qualityList}>
@@ -271,10 +307,21 @@ export function AdminPromptPanel({ promptPage, loading, actionLoading, error, on
 }
 
 export function AdminOperationsPanel({
-  summary, notificationStatus, notice, loading, actionLoading, error, onLoad, onTestNotification,
+  summary, qualityPage, notificationStatus, notice, loading, actionLoading, error,
+  onLoad, onTestNotification, onOpenQuality, onOpenGeneration,
 }) {
   const ai = summary?.aiToday || {};
   const quality = summary?.quality || {};
+  const reviewRequiredCount = qualityPage?.reviewRequiredCount || 0;
+  const dataInsufficientCount = qualityPage?.dataInsufficientCount || 0;
+  const normalCount = qualityPage?.normalCount || 0;
+  const totalQuestionCount = qualityPage?.totalQuestionCount || 0;
+  const shortageCount = summary?.inventory?.filter((item) => item.shortage).length || 0;
+  const backupStatus = summary?.lastBackupRun?.status || "UNKNOWN";
+  const aiLimit = summary?.aiDailyLimit || 0;
+  const aiUsageRate = aiLimit ? Math.min(100, (ai.totalCount || 0) * 100 / aiLimit) : 0;
+  const attentionCount = reviewRequiredCount + shortageCount
+    + (backupStatus === "FAILED" ? 1 : 0) + (summary?.activeLoginLocks || 0);
   const notificationUnknown = notificationStatus == null;
   const notificationReady = notificationStatus?.enabled && notificationStatus?.configured;
   const notificationLabel = notificationUnknown
@@ -295,6 +342,9 @@ export function AdminOperationsPanel({
           <p>서비스 상태, 생성 품질, 퀴즈 재고와 최근 장애를 한곳에서 확인합니다.</p>
         </div>
         <div className={styles.adminHeaderActions}>
+          <span className={`${styles.opsAttentionBadge} ${attentionCount ? styles.opsAttentionWarning : styles.opsAttentionClear}`}>
+            {attentionCount ? `확인 필요 ${attentionCount}` : "운영 정상"}
+          </span>
           <span className={`${styles.adminNotificationState} ${notificationReady ? styles.adminNotificationReady : ""}`}>
             <Send size={14} /> {notificationLabel}
           </span>
@@ -314,6 +364,26 @@ export function AdminOperationsPanel({
       {error && <div className={styles.adminError}>{error}</div>}
       {notice && <div className={styles.adminSuccess}>{notice}</div>}
       {!summary ? <div className={styles.adminEmpty}>운영 정보를 불러오는 중입니다.</div> : <>
+        <section className={styles.opsFocusGrid} aria-label="운영 우선 확인 항목">
+          <article className={shortageCount ? styles.opsFocusWarning : styles.opsFocusHealthy}>
+            <span>QUIZ INVENTORY</span>
+            <strong>{shortageCount ? `${shortageCount}일 부족` : "7일 준비 완료"}</strong>
+            <p>{shortageCount ? "생성 일정과 발행 대기 문항을 확인하세요." : "향후 7일 필수 재고가 확보됐습니다."}</p>
+          </article>
+          <article className={reviewRequiredCount ? styles.opsFocusWarning : styles.opsFocusHealthy}>
+            <span>QUESTION QUALITY</span>
+            <strong>{reviewRequiredCount ? `${reviewRequiredCount}개 검토 필요` : "검토 대기 없음"}</strong>
+            <p>전체 {totalQuestionCount}개 · 정상 {normalCount}개 · 데이터 부족 {dataInsufficientCount}개</p>
+            <button type="button" onClick={onOpenQuality}>검토 문항 보기 <ArrowRight size={14} /></button>
+          </article>
+          <article className={backupStatus === "FAILED" ? styles.opsFocusWarning : styles.opsFocusHealthy}>
+            <span>BACKUP & RESTORE</span>
+            <strong>{backupStatus === "UNKNOWN" ? "실행 기록 없음" : backupStatus}</strong>
+            <p>{summary.lastBackupRun?.message || "암호화 백업과 격리 복원 검증 결과를 기다리는 중입니다."}</p>
+            <time>{formatDateTime(summary.lastBackupRun?.completedAt)}</time>
+          </article>
+        </section>
+
         <section className={styles.opsHealthGrid}>
           {healthItems.map(([label, status, Icon]) => (
             <article key={label}>
@@ -327,7 +397,13 @@ export function AdminOperationsPanel({
         </section>
 
         <section className={styles.opsSection}>
-          <div className={styles.adminSectionHeading}><div><span>TODAY</span><h2>Gemini API</h2></div><b>평균 {Math.round(ai.averageLatencyMs || 0)}ms</b></div>
+          <div className={styles.adminSectionHeading}>
+            <div><span>TODAY</span><h2>Gemini API</h2></div>
+            <b>{ai.totalCount || 0} / {aiLimit || "-"}회 · 평균 {Math.round(ai.averageLatencyMs || 0)}ms</b>
+          </div>
+          <div className={styles.opsUsageTrack} aria-label={`Gemini 일일 호출량 ${Math.round(aiUsageRate)}%`}>
+            <i style={{ width: `${aiUsageRate}%` }} />
+          </div>
           <div className={styles.adminMetrics}>
             <div><span>전체 호출</span><strong>{ai.totalCount || 0}</strong></div>
             <div><span>성공</span><strong>{ai.successCount || 0}</strong></div>
@@ -354,7 +430,7 @@ export function AdminOperationsPanel({
 
         <div className={styles.opsTwoColumns}>
           <section className={styles.opsSection}>
-            <div className={styles.adminSectionHeading}><div><span>LAST 7 DAYS</span><h2>생성 품질</h2></div></div>
+            <div className={styles.adminSectionHeading}><div><span>LAST 7 DAYS</span><h2>AI 생성 품질</h2></div></div>
             <dl className={styles.opsDefinitionList}>
               <div><dt>평균 검증 점수</dt><dd>{Math.round(quality.averageValidationScore || 0)}점</dd></div>
               <div><dt>발행 성공</dt><dd>{quality.publishedCount || 0}건</dd></div>
@@ -372,6 +448,7 @@ export function AdminOperationsPanel({
               <div><dt>다음 생성</dt><dd>{formatDateTime(summary.nextSchedulerRun)}</dd></div>
               <div><dt>최근 DB 백업</dt><dd>{summary.lastBackupRun?.status || "기록 없음"}</dd></div>
               <div><dt>백업 완료</dt><dd>{formatDateTime(summary.lastBackupRun?.completedAt)}</dd></div>
+              <div><dt>복원 검증</dt><dd>{summary.lastBackupRun?.message?.includes("restore") || summary.lastBackupRun?.message?.includes("복원") ? "확인됨" : "기록 확인"}</dd></div>
               <div><dt>로그인 잠금</dt><dd>{summary.activeLoginLocks}건</dd></div>
             </dl>
           </section>
@@ -381,10 +458,10 @@ export function AdminOperationsPanel({
           <section className={styles.opsSection}>
             <div className={styles.adminSectionHeading}><div><span>FAILURES</span><h2>최근 생성 실패</h2></div></div>
             {summary.recentFailures?.length ? <div className={styles.opsRows}>
-              {summary.recentFailures.map((failure) => <article key={failure.generationLogId}>
+              {summary.recentFailures.map((failure) => <button type="button" className={styles.opsRowButton} key={failure.generationLogId} onClick={() => onOpenGeneration(failure.generationLogId)}>
                 <div><strong>#{failure.generationLogId} · {failure.targetDate}</strong><span>{failure.errorMessage || failure.status}</span></div>
-                <time>{formatDateTime(failure.updatedAt)}</time>
-              </article>)}
+                <time>{formatDateTime(failure.updatedAt)} <ArrowRight size={13} /></time>
+              </button>)}
             </div> : <div className={styles.adminEmpty}>최근 실패가 없습니다.</div>}
           </section>
           <section className={styles.opsSection}>
@@ -424,7 +501,10 @@ export function AdminQuizHub({
 
   useEffect(() => {
     if (section === "security") onLoadSecurity(auditPage?.page || 0);
-    if (section === "overview") onLoadOperations();
+    if (section === "overview") {
+      onLoadOperations();
+      onLoadQuality(0, { status: "", keyword: "" });
+    }
     if (section === "quality") onLoadQuality(0, qualityFilters);
   }, [section]);
 
@@ -478,6 +558,15 @@ export function AdminQuizHub({
     return linkedQuiz?.status === "PUBLISHED" ? "PUBLISHED" : log.status;
   }
 
+  function openQuality() {
+    setSection("quality");
+  }
+
+  async function openGeneration(generationLogId) {
+    setSection("operations");
+    await onLoadGeneration(generationLogId);
+  }
+
   const sectionItems = [
     ["overview", Activity, "운영 현황"],
     ["quality", BarChart3, "퀴즈 품질"],
@@ -523,6 +612,7 @@ export function AdminQuizHub({
       {section === "overview" ? (
         <AdminOperationsPanel
           summary={operationsSummary}
+          qualityPage={qualityPage}
           notificationStatus={operationsNotificationStatus}
           notice={operationsNotice}
           loading={loading}
@@ -530,6 +620,8 @@ export function AdminQuizHub({
           error={error}
           onLoad={onLoadOperations}
           onTestNotification={onTestNotification}
+          onOpenQuality={openQuality}
+          onOpenGeneration={openGeneration}
         />
       ) : section === "quality" ? (
         <AdminQuizQualityPanel
