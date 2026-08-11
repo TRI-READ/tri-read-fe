@@ -132,9 +132,10 @@ export default function TriReadApp() {
   const [orbitLoading, setOrbitLoading] = useState(false);
   const [orbitError, setOrbitError] = useState("");
   const [adminQuizPage, setAdminQuizPage] = useState({
-    page: { items: [], page: 0, size: 6, totalElements: 0, totalPages: 0 },
+    page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
     pendingCount: 0,
   });
+  const [adminQuizFilters, setAdminQuizFilters] = useState({ status: "", challengeDate: "", keyword: "" });
   const [adminGenerationPage, setAdminGenerationPage] = useState({
     page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
     successCount: 0,
@@ -143,6 +144,7 @@ export default function TriReadApp() {
     aiValidationEnabled: false,
   });
   const [adminGenerationFilters, setAdminGenerationFilters] = useState({ status: "", targetDate: "" });
+  const [adminGenerationFailures, setAdminGenerationFailures] = useState([]);
   const [adminGenerationDetail, setAdminGenerationDetail] = useState(null);
   const [adminQualityPage, setAdminQualityPage] = useState({
     page: { items: [], page: 0, size: 10, totalElements: 0, totalPages: 0 },
@@ -153,6 +155,7 @@ export default function TriReadApp() {
   const [adminUserPage, setAdminUserPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
+  const [adminUserActivity, setAdminUserActivity] = useState(null);
   const [adminPromptPage, setAdminPromptPage] = useState({
     page: { items: [], page: 0, size: 8, totalElements: 0, totalPages: 0 },
     active: null,
@@ -162,6 +165,7 @@ export default function TriReadApp() {
   const [adminAuditPage, setAdminAuditPage] = useState({
     items: [], page: 0, size: 10, totalElements: 0, totalPages: 0,
   });
+  const [adminAuditFilters, setAdminAuditFilters] = useState({ action: "", actor: "", from: "", to: "" });
   const [adminOperationsSummary, setAdminOperationsSummary] = useState(null);
   const [adminOperationsNotificationStatus, setAdminOperationsNotificationStatus] = useState(null);
   const [adminOperationsNotice, setAdminOperationsNotice] = useState("");
@@ -396,15 +400,23 @@ export default function TriReadApp() {
     loadOrbit(orbitPeriod, nextAnchor);
   }
 
-  async function loadAdminQuizzes(page = adminQuizPage.page.page) {
+  async function loadAdminQuizzes(page = adminQuizPage.page.page, filters = adminQuizFilters) {
     setAdminLoading(true); setAdminError("");
     try {
-      const response = await apiFetch(`/api/admin/quizzes?page=${page}&size=6`);
+      const params = new URLSearchParams({ page: String(page), size: "10" });
+      if (filters.status) params.set("status", filters.status);
+      if (filters.challengeDate) params.set("challengeDate", filters.challengeDate);
+      if (filters.keyword) params.set("keyword", filters.keyword);
+      const response = await apiFetch(`/api/admin/quizzes?${params}`);
       setAdminQuizPage(response);
       return response;
     }
     catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
+  }
+  async function filterAdminQuizzes(filters) {
+    setAdminQuizFilters(filters);
+    return loadAdminQuizzes(0, filters);
   }
   async function loadAdminGenerationPage(page = adminGenerationPage.page.page, filters = adminGenerationFilters) {
     setAdminLoading(true); setAdminError("");
@@ -481,6 +493,14 @@ export default function TriReadApp() {
     setAdminGenerationDetail(null);
     return loadAdminGenerationPage(0, filters);
   }
+  async function loadAdminGenerationFailures() {
+    setAdminError("");
+    try {
+      const response = await apiFetch("/api/admin/quiz-generations/failures?limit=10");
+      setAdminGenerationFailures(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+  }
   async function loadAdminPrompts(promptType = "GENERATION", page = 0) {
     setAdminLoading(true); setAdminError("");
     try {
@@ -490,12 +510,25 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
-  async function loadAdminSecurity(page = adminAuditPage.page) {
+  async function loadAdminUserActivity(userId) {
+    setAdminError("");
+    try {
+      const response = await apiFetch(`/api/admin/users/${userId}/activity`);
+      setAdminUserActivity(response);
+      return response;
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+  }
+  async function loadAdminSecurity(page = adminAuditPage.page, filters = adminAuditFilters) {
     setAdminLoading(true); setAdminError("");
     try {
+      const params = new URLSearchParams({ page: String(page), size: "10" });
+      if (filters.action) params.set("action", filters.action);
+      if (filters.actor) params.set("actor", filters.actor);
+      if (filters.from) params.set("from", filters.from);
+      if (filters.to) params.set("to", filters.to);
       const [locks, audits] = await Promise.all([
         apiFetch("/api/admin/security/login-locks"),
-        apiFetch(`/api/admin/audit-logs?page=${page}&size=10`),
+        apiFetch(`/api/admin/audit-logs?${params}`),
       ]);
       setAdminLoginLocks(locks);
       setAdminAuditPage(audits);
@@ -503,11 +536,15 @@ export default function TriReadApp() {
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminLoading(false); }
   }
+  async function filterAdminAudit(filters) {
+    setAdminAuditFilters(filters);
+    return loadAdminSecurity(0, filters);
+  }
   async function unlockAdminLogin(loginName) {
     setAdminActionLoading(`unlock-${loginName}`); setAdminError("");
     try {
       await apiFetch(`/api/admin/security/login-locks/${encodeURIComponent(loginName)}`, { method: "DELETE" });
-      await loadAdminSecurity(0);
+      await loadAdminSecurity(0, adminAuditFilters);
     } catch (error) { setAdminError(getErrorMessage(error)); }
     finally { setAdminActionLoading(""); }
   }
@@ -538,7 +575,7 @@ export default function TriReadApp() {
     setAdminLoading(true); setAdminError("");
     try {
       const [quizzes, logs, accounts] = await Promise.all([
-        apiFetch(`/api/admin/quizzes?page=${quizIndex}&size=6`),
+        apiFetch(`/api/admin/quizzes?page=${quizIndex}&size=10`),
         apiFetch(`/api/admin/quiz-generations?page=${generationIndex}&size=10`),
         apiFetch(`/api/admin/users?page=${userIndex}&size=10`),
       ]);
@@ -652,6 +689,26 @@ export default function TriReadApp() {
     try { await apiFetch(`/api/admin/quizzes/${quizSetId}/publish`, { method: "POST" }); await loadAdminQuizzes(); }
     catch (error) { setAdminError(getErrorMessage(error)); }
   }
+  async function reviewAdminQuiz(quizSetId) {
+    setAdminError("");
+    try {
+      await apiFetch(`/api/admin/quizzes/${quizSetId}/review`, { method: "POST" });
+      await loadAdminQuizzes(adminQuizPage.page.page, adminQuizFilters);
+    } catch (error) { setAdminError(getErrorMessage(error)); }
+  }
+  async function bulkAdminQuizzes(action, quizSetIds) {
+    setAdminActionLoading(`bulk-${action}`); setAdminError("");
+    try {
+      await apiFetch(`/api/admin/quizzes/bulk/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ quizSetIds }),
+      });
+      await loadAdminQuizzes(adminQuizPage.page.page, adminQuizFilters);
+    } catch (error) {
+      setAdminError(getErrorMessage(error));
+      throw error;
+    } finally { setAdminActionLoading(""); }
+  }
 
   useEffect(() => {
     if (user && view === "groups") {
@@ -663,7 +720,6 @@ export default function TriReadApp() {
     if (user && view === "orbit") {
       loadOrbit(orbitPeriod, orbitAnchor);
     }
-    if (user?.role === "ADMIN" && view === "admin") loadAdminConsole();
   }, [user, view]);
 
   useEffect(() => {
@@ -853,11 +909,15 @@ export default function TriReadApp() {
           generationDetail={adminGenerationDetail}
           userPage={adminUserPage}
           promptPage={adminPromptPage}
+          quizFilters={adminQuizFilters}
           generationFilters={adminGenerationFilters}
+          generationFailures={adminGenerationFailures}
           qualityPage={adminQualityPage}
           qualityFilters={adminQualityFilters}
+          userActivity={adminUserActivity}
           loginLocks={adminLoginLocks}
           auditPage={adminAuditPage}
+          auditFilters={adminAuditFilters}
           operationsSummary={adminOperationsSummary}
           operationsNotificationStatus={adminOperationsNotificationStatus}
           operationsNotice={adminOperationsNotice}
@@ -868,7 +928,9 @@ export default function TriReadApp() {
           onUpdate={updateAdminQuiz}
           onDelete={deleteAdminQuiz}
           onLoad={loadAdminQuiz}
+          onReview={reviewAdminQuiz}
           onPublish={publishAdminQuiz}
+          onBulk={bulkAdminQuizzes}
           onGenerate={generateAdminQuiz}
           onRetry={retryAdminGeneration}
           onLoadGeneration={loadAdminGeneration}
@@ -880,12 +942,16 @@ export default function TriReadApp() {
           onActivatePrompt={activateAdminPrompt}
           onRefresh={refreshAdminConsole}
           onQuizPageChange={loadAdminQuizzes}
+          onQuizFilterChange={filterAdminQuizzes}
           onGenerationPageChange={loadAdminGenerationPage}
           onGenerationFilterChange={filterAdminGeneration}
+          onLoadGenerationFailures={loadAdminGenerationFailures}
           onQualityFilterChange={filterAdminQuality}
           onQualityPageChange={loadAdminQuality}
           onUserPageChange={loadAdminUsers}
+          onLoadUserActivity={loadAdminUserActivity}
           onLoadSecurity={loadAdminSecurity}
+          onAuditFilterChange={filterAdminAudit}
           onUnlockLogin={unlockAdminLogin}
           onLoadOperations={loadAdminOperations}
           onLoadQuality={loadAdminQuality}

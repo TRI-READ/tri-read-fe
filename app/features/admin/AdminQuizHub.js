@@ -2,8 +2,6 @@
 
 import {
   Activity,
-  ArrowLeft,
-  ArrowRight,
   BarChart3,
   CheckCircle2,
   Copy,
@@ -12,11 +10,9 @@ import {
   FileText,
   Gauge,
   History,
-  KeyRound,
   LockKeyhole,
   NotebookPen,
   Plus,
-  Power,
   RefreshCw,
   RotateCcw,
   Send,
@@ -25,9 +21,12 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatDateTime, formatDuration, formatBytes } from "../../lib/triReadUi";
 import styles from "../../page.module.css";
+import { AdminQuizManagementPanel, AdminSecurityPanel, AdminUsersPanel } from "./AdminManagementPanels";
+import { AdminPagination } from "./AdminShared";
 
 export function blankAdminQuiz() {
   return {
@@ -53,38 +52,6 @@ const QUALITY_STATUS_LABELS = {
   DATA_INSUFFICIENT: "데이터 부족",
   NORMAL: "정상",
 };
-
-export function AdminPagination({ pagination, onPageChange, dark = false }) {
-  if (!pagination || pagination.totalElements === 0) return null;
-  const currentPage = pagination.page + 1;
-  const totalPages = Math.max(1, pagination.totalPages);
-  return (
-    <div className={`${styles.adminPagination} ${dark ? styles.adminPaginationDark : ""}`}>
-      <span>전체 {pagination.totalElements}건</span>
-      <div>
-        <button
-          type="button"
-          onClick={() => onPageChange(pagination.page - 1)}
-          disabled={pagination.page === 0}
-          aria-label="이전 페이지"
-          title="이전 페이지"
-        >
-          <ArrowLeft size={15} />
-        </button>
-        <strong>{currentPage} / {totalPages}</strong>
-        <button
-          type="button"
-          onClick={() => onPageChange(pagination.page + 1)}
-          disabled={currentPage >= totalPages}
-          aria-label="다음 페이지"
-          title="다음 페이지"
-        >
-          <ArrowRight size={15} />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function AdminQuizQualityPanel({ qualityPage, filters, loading, error, onFilter, onPageChange }) {
   const [status, setStatus] = useState(filters?.status || "");
@@ -402,18 +369,36 @@ export function AdminOperationsPanel({
   );
 }
 
+const ADMIN_PATHS = {
+  overview: "/admin",
+  quizzes: "/admin/quizzes",
+  quality: "/admin/quality",
+  operations: "/admin/generations",
+  prompts: "/admin/prompts",
+  editor: "/admin/quizzes/editor",
+  access: "/admin/users",
+  security: "/admin/security",
+};
+
+function getAdminSection(pathname) {
+  if (pathname.startsWith(ADMIN_PATHS.editor)) return "editor";
+  return Object.entries(ADMIN_PATHS).find(([, path]) => path !== "/admin" && pathname.startsWith(path))?.[0] || "overview";
+}
+
 export function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
-  generationFilters, qualityPage, qualityFilters, loginLocks, auditPage, operationsSummary, operationsNotificationStatus, operationsNotice,
-  onCreate, onUpdate, onDelete, onLoad, onPublish, onGenerate, onRetry,
+  quizFilters, generationFilters, generationFailures, qualityPage, qualityFilters, userActivity, loginLocks, auditPage, auditFilters,
+  operationsSummary, operationsNotificationStatus, operationsNotice,
+  onCreate, onUpdate, onDelete, onLoad, onReview, onPublish, onBulk, onGenerate, onRetry,
   onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
-  onGenerationPageChange, onGenerationFilterChange, onQualityFilterChange, onQualityPageChange,
-  onUserPageChange, onLoadSecurity, onUnlockLogin, onLoadOperations, onLoadQuality, onTestNotification,
+  onQuizFilterChange, onGenerationPageChange, onGenerationFilterChange, onLoadGenerationFailures, onQualityFilterChange, onQualityPageChange,
+  onUserPageChange, onLoadUserActivity, onLoadSecurity, onAuditFilterChange, onUnlockLogin, onLoadOperations, onLoadQuality, onTestNotification,
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const quizzes = quizPage?.page?.items || [];
   const generationLogs = generationPage?.page?.items || [];
-  const users = userPage?.items || [];
-  const [section, setSection] = useState("overview");
+  const section = getAdminSection(pathname);
   const [draft, setDraft] = useState(blankAdminQuiz);
   const [activePassage, setActivePassage] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -423,9 +408,15 @@ export function AdminQuizHub({
   const [filterDate, setFilterDate] = useState(generationFilters?.targetDate || "");
 
   useEffect(() => {
-    if (section === "security") onLoadSecurity(auditPage?.page || 0);
+    if (section === "security") onLoadSecurity(0, auditFilters);
     if (section === "overview") onLoadOperations();
+    if (section === "quizzes" || section === "editor") onQuizPageChange(0, quizFilters);
     if (section === "quality") onLoadQuality(0, qualityFilters);
+    if (section === "operations") {
+      onGenerationPageChange(0, generationFilters);
+      onLoadGenerationFailures();
+    }
+    if (section === "access") onUserPageChange(0);
   }, [section]);
 
   useEffect(() => {
@@ -462,7 +453,7 @@ export function AdminQuizHub({
         explanation: q.explanation, evidence: q.evidence || "" })),
     })) });
     setActivePassage(0);
-    setSection("editor");
+    router.push(ADMIN_PATHS.editor);
   }
   async function deleteQuiz(quizSetId) {
     if (!window.confirm("이 DRAFT를 삭제할까요?")) return;
@@ -480,11 +471,12 @@ export function AdminQuizHub({
 
   const sectionItems = [
     ["overview", Activity, "운영 현황"],
+    ["quizzes", Database, "퀴즈 관리"],
     ["quality", BarChart3, "퀴즈 품질"],
     ["operations", Sparkles, "퀴즈 생성"],
     ["prompts", FileText, "지문 생성 프롬프트 관리"],
     ["editor", NotebookPen, "수동 편집"],
-    ["access", ShieldCheck, "권한 관리"],
+    ["access", ShieldCheck, "사용자 관리"],
     ["security", LockKeyhole, "보안·감사"],
   ];
 
@@ -494,13 +486,13 @@ export function AdminQuizHub({
         <div className={styles.adminRailHeading}><span>ADMIN CONSOLE</span><h2>운영 관리</h2></div>
         <nav className={styles.adminSectionNav} aria-label="관리자 메뉴">
           {sectionItems.map(([value, Icon, label]) => (
-            <button key={value} type="button" className={section === value ? styles.adminSectionActive : ""} onClick={() => setSection(value)}>
+            <button key={value} type="button" className={section === value ? styles.adminSectionActive : ""} onClick={() => router.push(ADMIN_PATHS[value])}>
               <Icon size={16} /> {label}
             </button>
           ))}
         </nav>
         {section === "editor" && <>
-          <button className={styles.adminNewButton} type="button" onClick={() => { resetEditor(); setSection("editor"); }}><Plus size={15} /> 새 퀴즈</button>
+          <button className={styles.adminNewButton} type="button" onClick={() => { resetEditor(); router.push(ADMIN_PATHS.editor); }}><Plus size={15} /> 새 퀴즈</button>
           <div className={styles.adminQuizList}>
             {quizzes.map((quiz) => (
               <article key={quiz.quizSetId}>
@@ -531,6 +523,21 @@ export function AdminQuizHub({
           onLoad={onLoadOperations}
           onTestNotification={onTestNotification}
         />
+      ) : section === "quizzes" ? (
+        <AdminQuizManagementPanel
+          quizPage={quizPage}
+          filters={quizFilters}
+          loading={loading}
+          actionLoading={actionLoading}
+          error={error}
+          onFilter={onQuizFilterChange}
+          onPageChange={(page) => onQuizPageChange(page, quizFilters)}
+          onEdit={editQuiz}
+          onReview={onReview}
+          onPublish={onPublish}
+          onDelete={onDelete}
+          onBulk={onBulk}
+        />
       ) : section === "quality" ? (
         <AdminQuizQualityPanel
           qualityPage={qualityPage}
@@ -559,6 +566,22 @@ export function AdminQuizHub({
               <strong>{generationPage?.apiUsage?.totalCount || 0}<small> / {generationPage?.apiUsage?.limit || 0}</small></strong>
             </div>
           </div>
+          {generationFailures?.length > 0 && (
+            <section className={styles.adminFailureSummary}>
+              <div className={styles.adminSectionHeading}>
+                <div><span>FAILURE SUMMARY</span><h2>최근 생성 실패 원인</h2></div>
+              </div>
+              <div className={styles.adminFailureRows}>
+                {generationFailures.map((failure) => (
+                  <article key={failure.errorCode}>
+                    <strong>{failure.errorCode}</strong>
+                    <span>{failure.failureCount}건</span>
+                    <time>{formatDateTime(failure.lastOccurredAt)}</time>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
           <section className={styles.adminLogSection}>
             <div className={styles.adminSectionHeading}>
               <div><span>전체 {generationPage?.page?.totalElements || 0}건</span><h2>생성 기록</h2></div>
@@ -596,7 +619,8 @@ export function AdminQuizHub({
                   <div className={styles.adminLogActions}>
                     {log.quizSetId && displayStatus !== "PUBLISHED" && <button type="button" onClick={() => editQuiz(log.quizSetId)}>편집</button>}
                     {log.quizSetId && displayStatus !== "PUBLISHED" && <button type="button" onClick={() => onPublish(log.quizSetId)}>발행</button>}
-                    {log.status === "FAILED" && <button type="button" onClick={() => onRetry(log.generationLogId)} disabled={actionLoading === `retry-${log.generationLogId}`}><RefreshCw size={14} /> 재시도</button>}
+                    {log.status === "FAILED" && (log.manualRetryCount || 0) < 2 && <button type="button" onClick={() => onRetry(log.generationLogId)} disabled={actionLoading === `retry-${log.generationLogId}`}><RefreshCw size={14} /> 재시도 {log.manualRetryCount || 0}/2</button>}
+                    {log.status === "FAILED" && (log.manualRetryCount || 0) >= 2 && <span className={styles.adminRetryLimit}>재시도 한도 도달</span>}
                   </div>
                 </article>;
               })}
@@ -638,51 +662,29 @@ export function AdminQuizHub({
           onActivate={onActivatePrompt}
         />
       ) : section === "access" ? (
-        <div className={styles.adminWorkspace}>
-          <header className={styles.adminEditorHeader}><div><span>ACCESS CONTROL</span><h1>사용자 권한</h1><p>권한·상태·PIN 변경 시 해당 사용자의 기존 로그인은 즉시 종료됩니다.</p></div></header>
-          {error && <div className={styles.adminError}>{error}</div>}
-          <div className={styles.adminUserTable}>
-            <div className={styles.adminUserHeader}><span>사용자</span><span>최근 로그인</span><span>권한</span><span>계정 관리</span></div>
-            {users.map((account) => <article key={account.userId}>
-              <div><strong>{account.displayName}</strong><small>@{account.loginName}{account.userId === currentUser.userId ? " · 현재 계정" : ""}</small></div>
-              <time>{account.lastLoginAt ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(account.lastLoginAt)) : "로그인 기록 없음"}</time>
-              <select value={account.role} disabled={!account.enabled || actionLoading === `role-${account.userId}` || account.userId === currentUser.userId} onChange={(event) => onUpdateRole(account.userId, event.target.value)} aria-label={`${account.displayName} 권한`}>
-                <option value="USER">사용자</option><option value="ADMIN">관리자</option>
-              </select>
-              <div className={styles.adminAccountActions}>
-                <button type="button" onClick={() => onResetPin(account)} disabled={!account.enabled || Boolean(actionLoading)} title="PIN 초기화"><KeyRound size={14} /></button>
-                <button type="button" onClick={() => onUpdateEnabled(account.userId, !account.enabled)} disabled={account.userId === currentUser.userId || Boolean(actionLoading)} className={account.enabled ? styles.adminDisableButton : styles.adminEnableButton} title={account.enabled ? "계정 중지" : "계정 활성화"}><Power size={14} /><span>{account.enabled ? "중지" : "활성화"}</span></button>
-              </div>
-            </article>)}
-          </div>
-          <AdminPagination pagination={userPage} onPageChange={onUserPageChange} />
-        </div>
+        <AdminUsersPanel
+          currentUser={currentUser}
+          userPage={userPage}
+          activity={userActivity}
+          actionLoading={actionLoading}
+          error={error}
+          onPageChange={onUserPageChange}
+          onLoadActivity={onLoadUserActivity}
+          onUpdateRole={onUpdateRole}
+          onUpdateEnabled={onUpdateEnabled}
+          onResetPin={onResetPin}
+        />
       ) : section === "security" ? (
-        <div className={styles.adminWorkspace}>
-          <header className={styles.adminEditorHeader}><div><span>SECURITY & AUDIT</span><h1>보안·감사</h1><p>현재 잠긴 로그인과 관리자 변경 이력을 확인합니다.</p></div></header>
-          {error && <div className={styles.adminError}>{error}</div>}
-          <section className={styles.adminSecuritySection}>
-            <div className={styles.adminSectionHeading}><div><span>LOGIN LOCKS</span><h2>로그인 잠금</h2></div><strong>{loginLocks.length}건</strong></div>
-            {loginLocks.length ? <div className={styles.adminLockList}>
-              {loginLocks.map((lock) => <article key={`${lock.loginName}-${lock.expiresAt}`}>
-                <div><strong>@{lock.loginName}</strong><small>{lock.clientAddress} · 실패 {lock.failures}회</small></div>
-                <time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(lock.expiresAt))}까지</time>
-                <button type="button" onClick={() => onUnlockLogin(lock.loginName)} disabled={actionLoading === `unlock-${lock.loginName}`}>잠금 해제</button>
-              </article>)}
-            </div> : <div className={styles.adminEmpty}>현재 잠긴 로그인이 없습니다.</div>}
-          </section>
-          <section className={styles.adminSecuritySection}>
-            <div className={styles.adminSectionHeading}><div><span>ADMIN AUDIT</span><h2>관리자 작업 이력</h2></div></div>
-            {(auditPage?.items || []).length ? <div className={styles.adminAuditList}>
-              {auditPage.items.map((audit) => <article key={audit.auditLogId}>
-                <span className={styles.adminAuditAction}>{audit.action}</span>
-                <div><strong>{audit.targetType}{audit.targetId ? ` #${audit.targetId}` : ""}</strong><small>@{audit.actorLoginName || "삭제된 사용자"}</small></div>
-                <time>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(audit.createdAt))}</time>
-              </article>)}
-            </div> : <div className={styles.adminEmpty}>기록된 관리자 작업이 없습니다.</div>}
-            <AdminPagination pagination={auditPage} onPageChange={onLoadSecurity} />
-          </section>
-        </div>
+        <AdminSecurityPanel
+          loginLocks={loginLocks}
+          auditPage={auditPage}
+          filters={auditFilters}
+          actionLoading={actionLoading}
+          error={error}
+          onFilter={onAuditFilterChange}
+          onPageChange={(page) => onLoadSecurity(page, auditFilters)}
+          onUnlockLogin={onUnlockLogin}
+        />
       ) : (
       <form className={styles.adminEditor} onSubmit={submit}>
         <header className={styles.adminEditorHeader}>

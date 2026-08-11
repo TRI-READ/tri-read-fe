@@ -3226,6 +3226,8 @@
 .adminLogMain b { text-align: right; font-size: 12px; }
 .adminStatus { display: inline-flex; align-items: center; justify-content: center; width: 82px; height: 24px; color: #52635f; border: 1px solid #c6d1ce; font-size: 10px; font-weight: 800; }
 .adminStatusREADY, .adminStatusPUBLISHED { color: #146957; border-color: #8ccdbd; background: #e9f8f4; }
+.adminStatusDRAFT { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
+.adminStatusREVIEWED { color: #285d72; border-color: #9bc4d5; background: #eef8fc; }
 .adminStatusFAILED { color: #9a3232; border-color: #e2aaaa; background: #fff0f0; }
 .adminStatusGENERATING, .adminStatusVALIDATING, .adminStatusRETRYING { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
 .adminLogActions { display: flex; gap: 5px; padding-right: 12px; }
@@ -3325,6 +3327,45 @@
 .adminPaginationDark strong { color: #e6f1ee; }
 .adminPaginationDark button { border-color: #435a55; color: #c6d7d3; background: #17302a; }
 
+.adminSelectionBar { display: flex; align-items: center; gap: 8px; min-height: 46px; margin-bottom: 10px; padding: 7px 12px; border: 1px solid #9fcabd; background: #eef9f6; }
+.adminSelectionBar strong { margin-right: auto; color: #185f53; font-size: 12px; }
+.adminSelectionBar button, .adminQuizActions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 0 9px; border: 1px solid #aebfba; color: #31534b; background: #fff; font: inherit; font-size: 10px; cursor: pointer; }
+.adminSelectionBar button:last-child, .adminQuizActions button:last-child { color: #913939; border-color: #ddb0b0; background: #fff7f7; }
+.adminSelectionBar button:disabled, .adminQuizActions button:disabled { cursor: wait; opacity: .55; }
+.adminQuizTable { border-top: 1px solid #cbd6d3; background: #fff; }
+.adminQuizTable article { display: grid; grid-template-columns: 24px minmax(180px, 1fr) 92px 160px minmax(220px, auto); align-items: center; gap: 12px; min-height: 66px; padding: 10px 14px; border-bottom: 1px solid #dae2e0; }
+.adminQuizTable article:hover { background: #f7faf9; }
+.adminQuizTable .adminQuizRowSelected { box-shadow: inset 3px 0 #168c78; background: #f2faf7; }
+.adminQuizTable input { width: 16px; height: 16px; accent-color: #168773; }
+.adminQuizTable strong, .adminQuizTable small { display: block; }
+.adminQuizTable strong { color: #203f38; font-size: 13px; }
+.adminQuizTable small { margin-top: 4px; color: #768681; font-size: 10px; }
+.adminQuizTable time { color: #697b76; font-size: 10px; }
+.adminQuizActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.adminUserIdentity { padding: 0; border: 0; color: #263f39; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.adminUserIdentity:hover strong { color: #087460; text-decoration: underline; text-underline-offset: 3px; }
+.adminUserActivity { margin-top: 30px; padding-top: 24px; border-top: 1px solid #cbd6d3; }
+.adminActivityMetrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #ccd7d4; background: #fff; }
+.adminActivityMetrics div { min-width: 0; padding: 14px 16px; border-right: 1px solid #d9e1df; }
+.adminActivityMetrics div:last-child { border-right: 0; }
+.adminActivityMetrics span, .adminActivityMetrics strong { display: block; }
+.adminActivityMetrics span { margin-bottom: 5px; color: #71817d; font-size: 10px; }
+.adminActivityMetrics strong { overflow: hidden; color: #173c34; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.adminActivityList { margin-top: 12px; border-top: 1px solid #cbd6d3; background: #fff; }
+.adminActivityList article { display: grid; grid-template-columns: minmax(180px, 1fr) 68px 180px; align-items: center; gap: 14px; min-height: 58px; padding: 8px 14px; border-bottom: 1px solid #dbe2e0; }
+.adminActivityList strong, .adminActivityList small { display: block; }
+.adminActivityList strong { color: #29433d; font-size: 12px; }
+.adminActivityList small, .adminActivityList time { margin-top: 4px; color: #788783; font-size: 10px; }
+.adminActivityList b { color: #147563; text-align: right; font-size: 12px; }
+.adminActivityList time { margin: 0; text-align: right; }
+.adminFailureSummary { margin: -12px 0 28px; padding: 16px; border: 1px solid #e0c0bc; background: #fff8f6; }
+.adminFailureSummary .adminSectionHeading { margin-bottom: 8px; }
+.adminFailureRows { border-top: 1px solid #ead4d0; }
+.adminFailureRows article { display: grid; grid-template-columns: minmax(180px, 1fr) 60px 180px; align-items: center; gap: 12px; min-height: 42px; border-bottom: 1px solid #eadbd8; }
+.adminFailureRows strong { overflow: hidden; color: #8c3d36; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.adminFailureRows span, .adminFailureRows time { color: #796d69; text-align: right; font-size: 10px; }
+.adminRetryLimit { display: inline-flex; align-items: center; min-height: 30px; padding: 0 9px; color: #8b4a43; border: 1px solid #dfbbb7; background: #fff5f3; font-size: 10px; }
+
 .adminPromptTypeTabs { display: grid; grid-template-columns: repeat(2, 90px); border: 1px solid #c7d3d0; background: #edf2f0; }
 .adminPromptTypeTabs button { height: 38px; border: 0; color: #657873; background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 .adminPromptTypeTabs .adminPromptTypeActive { color: #123f36; background: #9ce1d1; font-weight: 800; }
@@ -3407,6 +3448,9 @@
   .adminPromptEditor { padding: 0 0 26px; border-right: 0; border-bottom: 1px solid #ccd7d4; }
   .opsInventory { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .opsInventory article { border-bottom: 1px solid #d9e1df; }
+  .adminQuizTable article { grid-template-columns: 24px minmax(160px, 1fr) 92px; }
+  .adminQuizTable time { grid-column: 2; }
+  .adminQuizActions { grid-column: 3; grid-row: 1 / span 2; }
 }
 
 @media (max-width: 600px) {
@@ -3443,6 +3487,19 @@
   .adminUserHeader { display: none; }
   .adminUserTable article { grid-template-columns: 1fr 105px; padding: 12px 14px; }
   .adminUserTable time { grid-column: 1 / -1; grid-row: 2; }
+  .adminSelectionBar { align-items: stretch; flex-wrap: wrap; }
+  .adminSelectionBar strong { width: 100%; }
+  .adminQuizTable article { grid-template-columns: 22px minmax(0, 1fr); gap: 8px 10px; padding: 12px; }
+  .adminQuizTable .adminStatus { grid-column: 2; justify-self: start; }
+  .adminQuizTable time { grid-column: 2; }
+  .adminQuizActions { grid-column: 1 / -1; grid-row: auto; justify-content: flex-start; padding-top: 4px; }
+  .adminActivityMetrics { grid-template-columns: repeat(2, 1fr); }
+  .adminActivityMetrics div:nth-child(2) { border-right: 0; }
+  .adminActivityMetrics div:nth-child(-n+2) { border-bottom: 1px solid #d9e1df; }
+  .adminActivityList article { grid-template-columns: minmax(0, 1fr) 54px; }
+  .adminActivityList time { grid-column: 1 / -1; text-align: left; }
+  .adminFailureRows article { grid-template-columns: minmax(0, 1fr) 48px; padding: 8px 0; }
+  .adminFailureRows time { grid-column: 1 / -1; text-align: left; }
   .adminLockList article, .adminAuditList article { grid-template-columns: 1fr auto; padding: 12px 14px; }
   .adminLockList time, .adminAuditList time { grid-column: 1 / -1; grid-row: 2; text-align: left; }
   .adminFooter { align-items: stretch; flex-direction: column; }
