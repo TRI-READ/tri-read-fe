@@ -34,6 +34,9 @@ const PATH_VIEWS = Object.fromEntries(
 
 export function getViewFromPathname(pathname) {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  if (normalizedPath === VIEW_PATHS.admin || normalizedPath.startsWith(`${VIEW_PATHS.admin}/`)) {
+    return "admin";
+  }
   return PATH_VIEWS[normalizedPath] || "quiz";
 }
 

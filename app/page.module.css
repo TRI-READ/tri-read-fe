@@ -3226,6 +3226,8 @@
 .adminLogMain b { text-align: right; font-size: 12px; }
 .adminStatus { display: inline-flex; align-items: center; justify-content: center; width: 82px; height: 24px; color: #52635f; border: 1px solid #c6d1ce; font-size: 10px; font-weight: 800; }
 .adminStatusREADY, .adminStatusPUBLISHED { color: #146957; border-color: #8ccdbd; background: #e9f8f4; }
+.adminStatusDRAFT { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
+.adminStatusREVIEWED { color: #285d72; border-color: #9bc4d5; background: #eef8fc; }
 .adminStatusFAILED { color: #9a3232; border-color: #e2aaaa; background: #fff0f0; }
 .adminStatusGENERATING, .adminStatusVALIDATING, .adminStatusRETRYING { color: #775a18; border-color: #ddc27d; background: #fff9e9; }
 .adminLogActions { display: flex; gap: 5px; padding-right: 12px; }
@@ -3245,19 +3247,6 @@
 .adminValidationList li b { margin-right: 5px; color: #9a3b3b; font-size: 10px; }
 .adminOutlineButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 13px; border: 1px solid #aebfba; color: #31534b; background: #fff; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
 .adminOutlineButton:disabled { cursor: wait; opacity: .6; }
-.opsAttentionBadge { display: inline-flex; align-items: center; min-height: 38px; padding: 0 11px; border: 1px solid; font-size: 11px; font-weight: 800; }
-.opsAttentionClear { color: #17695a; border-color: #a9d9ce; background: #edfaf6; }
-.opsAttentionWarning { color: #8b4338; border-color: #e2b5ad; background: #fff3f0; }
-.opsFocusGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-.opsFocusGrid article { position: relative; min-width: 0; min-height: 148px; padding: 18px; border: 1px solid #ccd7d4; background: #fff; }
-.opsFocusGrid article::before { position: absolute; top: -1px; left: -1px; width: calc(100% + 2px); height: 3px; content: ""; background: #65b7a5; }
-.opsFocusGrid .opsFocusWarning::before { background: #df765e; }
-.opsFocusGrid span, .opsFocusGrid strong, .opsFocusGrid p, .opsFocusGrid time { display: block; }
-.opsFocusGrid span { color: #168773; font-size: 9px; font-weight: 850; letter-spacing: .08em; }
-.opsFocusGrid strong { margin-top: 10px; color: #203f38; font-size: 19px; }
-.opsFocusGrid p { overflow: hidden; margin: 8px 0 0; color: #6d7d79; font-size: 10px; line-height: 1.55; }
-.opsFocusGrid time { margin-top: 8px; color: #87938f; font-size: 9px; }
-.opsFocusGrid button { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; padding: 0; border: 0; color: #0d7563; background: transparent; font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
 .opsHealthGrid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #ccd7d4; background: #fff; }
 .opsHealthGrid article { display: flex; align-items: flex-start; gap: 11px; min-height: 86px; padding: 17px; border-right: 1px solid #d9e1df; border-bottom: 1px solid #d9e1df; }
 .opsHealthGrid article:nth-child(3n) { border-right: 0; }
@@ -3271,8 +3260,6 @@
 .opsHealthGrid .opsWarning { color: #a45a26; }
 .opsSection { margin-top: 28px; }
 .opsSection .adminSectionHeading > b { color: #516762; font-size: 11px; }
-.opsUsageTrack { height: 5px; overflow: hidden; margin: -1px 0 12px; background: #dfe8e5; }
-.opsUsageTrack i { display: block; height: 100%; background: linear-gradient(90deg, #39a88f, #e6a65b); transition: width .25s ease; }
 .opsErrorCodes { display: flex; flex-wrap: wrap; gap: 7px; margin-top: -18px; margin-bottom: 22px; }
 .opsErrorCodes span { padding: 6px 9px; color: #8a3e3e; border: 1px solid #e0b6b6; background: #fff3f3; font-size: 10px; }
 .opsInventory { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid #ccd7d4; background: #fff; }
@@ -3290,13 +3277,11 @@
 .opsDefinitionList dt { color: #657670; font-size: 11px; }
 .opsDefinitionList dd { margin: 0; color: #263f39; text-align: right; font-size: 11px; font-weight: 800; }
 .opsRows { border-top: 1px solid #cbd6d3; background: #fff; }
-.opsRows article, .opsRows .opsRowButton { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 9px 13px; border: 0; border-bottom: 1px solid #dde4e2; color: inherit; background: #fff; text-align: left; font: inherit; }
-.opsRows .opsRowButton { cursor: pointer; }
-.opsRows .opsRowButton:hover { background: #f0f8f5; }
+.opsRows article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 58px; padding: 9px 13px; border-bottom: 1px solid #dde4e2; }
 .opsRows strong, .opsRows span { display: block; }
 .opsRows strong { color: #29433d; font-size: 11px; }
 .opsRows span { overflow: hidden; margin-top: 4px; color: #788783; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
-.opsRows time { display: flex; align-items: center; gap: 5px; color: #788783; font-size: 9px; }
+.opsRows time { color: #788783; font-size: 9px; }
 .adminSourceReview { margin-bottom: 18px; }
 .adminSourceReview > div:last-child { border-top: 1px solid #cbd6d3; background: #fff; }
 .adminSourceReview article { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 58px; padding: 8px 13px; border-bottom: 1px solid #dbe2e0; }
@@ -3342,6 +3327,45 @@
 .adminPaginationDark strong { color: #e6f1ee; }
 .adminPaginationDark button { border-color: #435a55; color: #c6d7d3; background: #17302a; }
 
+.adminSelectionBar { display: flex; align-items: center; gap: 8px; min-height: 46px; margin-bottom: 10px; padding: 7px 12px; border: 1px solid #9fcabd; background: #eef9f6; }
+.adminSelectionBar strong { margin-right: auto; color: #185f53; font-size: 12px; }
+.adminSelectionBar button, .adminQuizActions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 0 9px; border: 1px solid #aebfba; color: #31534b; background: #fff; font: inherit; font-size: 10px; cursor: pointer; }
+.adminSelectionBar button:last-child, .adminQuizActions button:last-child { color: #913939; border-color: #ddb0b0; background: #fff7f7; }
+.adminSelectionBar button:disabled, .adminQuizActions button:disabled { cursor: wait; opacity: .55; }
+.adminQuizTable { border-top: 1px solid #cbd6d3; background: #fff; }
+.adminQuizTable article { display: grid; grid-template-columns: 24px minmax(180px, 1fr) 92px 160px minmax(220px, auto); align-items: center; gap: 12px; min-height: 66px; padding: 10px 14px; border-bottom: 1px solid #dae2e0; }
+.adminQuizTable article:hover { background: #f7faf9; }
+.adminQuizTable .adminQuizRowSelected { box-shadow: inset 3px 0 #168c78; background: #f2faf7; }
+.adminQuizTable input { width: 16px; height: 16px; accent-color: #168773; }
+.adminQuizTable strong, .adminQuizTable small { display: block; }
+.adminQuizTable strong { color: #203f38; font-size: 13px; }
+.adminQuizTable small { margin-top: 4px; color: #768681; font-size: 10px; }
+.adminQuizTable time { color: #697b76; font-size: 10px; }
+.adminQuizActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.adminUserIdentity { padding: 0; border: 0; color: #263f39; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.adminUserIdentity:hover strong { color: #087460; text-decoration: underline; text-underline-offset: 3px; }
+.adminUserActivity { margin-top: 30px; padding-top: 24px; border-top: 1px solid #cbd6d3; }
+.adminActivityMetrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #ccd7d4; background: #fff; }
+.adminActivityMetrics div { min-width: 0; padding: 14px 16px; border-right: 1px solid #d9e1df; }
+.adminActivityMetrics div:last-child { border-right: 0; }
+.adminActivityMetrics span, .adminActivityMetrics strong { display: block; }
+.adminActivityMetrics span { margin-bottom: 5px; color: #71817d; font-size: 10px; }
+.adminActivityMetrics strong { overflow: hidden; color: #173c34; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.adminActivityList { margin-top: 12px; border-top: 1px solid #cbd6d3; background: #fff; }
+.adminActivityList article { display: grid; grid-template-columns: minmax(180px, 1fr) 68px 180px; align-items: center; gap: 14px; min-height: 58px; padding: 8px 14px; border-bottom: 1px solid #dbe2e0; }
+.adminActivityList strong, .adminActivityList small { display: block; }
+.adminActivityList strong { color: #29433d; font-size: 12px; }
+.adminActivityList small, .adminActivityList time { margin-top: 4px; color: #788783; font-size: 10px; }
+.adminActivityList b { color: #147563; text-align: right; font-size: 12px; }
+.adminActivityList time { margin: 0; text-align: right; }
+.adminFailureSummary { margin: -12px 0 28px; padding: 16px; border: 1px solid #e0c0bc; background: #fff8f6; }
+.adminFailureSummary .adminSectionHeading { margin-bottom: 8px; }
+.adminFailureRows { border-top: 1px solid #ead4d0; }
+.adminFailureRows article { display: grid; grid-template-columns: minmax(180px, 1fr) 60px 180px; align-items: center; gap: 12px; min-height: 42px; border-bottom: 1px solid #eadbd8; }
+.adminFailureRows strong { overflow: hidden; color: #8c3d36; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.adminFailureRows span, .adminFailureRows time { color: #796d69; text-align: right; font-size: 10px; }
+.adminRetryLimit { display: inline-flex; align-items: center; min-height: 30px; padding: 0 9px; color: #8b4a43; border: 1px solid #dfbbb7; background: #fff5f3; font-size: 10px; }
+
 .adminPromptTypeTabs { display: grid; grid-template-columns: repeat(2, 90px); border: 1px solid #c7d3d0; background: #edf2f0; }
 .adminPromptTypeTabs button { height: 38px; border: 0; color: #657873; background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 .adminPromptTypeTabs .adminPromptTypeActive { color: #123f36; background: #9ce1d1; font-weight: 800; }
@@ -3383,23 +3407,6 @@
 .adminPromptActivations p span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adminPromptActivations p time { color: #83918e; font-size: 9px; }
 
-.qualityMetricGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-.qualityMetricCard { min-width: 0; min-height: 106px; padding: 15px 16px; border: 1px solid #ccd7d4; color: #29453f; background: #fff; text-align: left; font: inherit; cursor: pointer; }
-.qualityMetricCard span, .qualityMetricCard strong, .qualityMetricCard small { display: block; }
-.qualityMetricCard span { color: #6e7f7a; font-size: 10px; font-weight: 800; }
-.qualityMetricCard strong { margin: 8px 0 5px; font-size: 26px; }
-.qualityMetricCard small { color: #899590; font-size: 9px; }
-.qualityMetricReview strong { color: #a1453d; }
-.qualityMetricWaiting strong { color: #87651b; }
-.qualityMetricNormal strong { color: #0d7966; }
-.qualityMetricActive { border-color: #168773; box-shadow: inset 0 -3px #168773; background: #f0faf7; }
-.qualityMetricReview.qualityMetricActive { border-color: #d86a5d; box-shadow: inset 0 -3px #d86a5d; background: #fff6f3; }
-.qualityPolicy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 18px; border: 1px solid #d6dfdc; background: #f7faf9; }
-.qualityPolicy div { padding: 12px 14px; border-right: 1px solid #dce4e2; }
-.qualityPolicy div:last-child { border-right: 0; }
-.qualityPolicy strong, .qualityPolicy span { display: block; }
-.qualityPolicy strong { margin-bottom: 5px; color: #38534c; font-size: 10px; }
-.qualityPolicy span { color: #788782; font-size: 9px; line-height: 1.55; }
 .qualityFilters { display: flex; align-items: end; gap: 8px; margin-bottom: 20px; padding: 14px; border: 1px solid #ccd7d4; background: #fff; }
 .qualityFilters label { display: grid; gap: 6px; color: #526762; font-size: 11px; font-weight: 750; }
 .qualityFilters label:nth-child(2) { flex: 1; }
@@ -3407,10 +3414,6 @@
 .qualityFilters input { width: 100%; }
 .qualityFilters button { height: 36px; padding: 0 14px; border: 1px solid #b9c9c5; color: #36534c; background: #fff; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
 .qualityFilters button[type="submit"] { border-color: #147a68; color: #fff; background: #147a68; }
-.qualityResultHeading { display: flex; align-items: flex-end; justify-content: space-between; margin: 24px 0 10px; }
-.qualityResultHeading span { color: #168773; font-size: 9px; font-weight: 850; letter-spacing: .08em; }
-.qualityResultHeading h2 { margin: 4px 0 0; color: #203f38; font-size: 18px; }
-.qualityResultHeading > strong { color: #657670; font-size: 11px; }
 .qualityList { display: grid; gap: 12px; }
 .qualityItem { border: 1px solid #cbd7d4; background: #fff; }
 .qualityItem > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 18px 20px; border-bottom: 1px solid #dbe3e1; }
@@ -3445,9 +3448,9 @@
   .adminPromptEditor { padding: 0 0 26px; border-right: 0; border-bottom: 1px solid #ccd7d4; }
   .opsInventory { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .opsInventory article { border-bottom: 1px solid #d9e1df; }
-  .opsFocusGrid { grid-template-columns: 1fr 1fr; }
-  .opsFocusGrid article:last-child { grid-column: 1 / -1; }
-  .qualityMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adminQuizTable article { grid-template-columns: 24px minmax(160px, 1fr) 92px; }
+  .adminQuizTable time { grid-column: 2; }
+  .adminQuizActions { grid-column: 3; grid-row: 1 / span 2; }
 }
 
 @media (max-width: 600px) {
@@ -3468,10 +3471,6 @@
   .adminMetrics div:last-child { border-bottom: 0; }
   .qualityFilters { align-items: stretch; flex-direction: column; }
   .qualityFilters select, .qualityFilters input { width: 100%; }
-  .qualityMetricGrid, .qualityPolicy, .opsFocusGrid { grid-template-columns: 1fr; }
-  .qualityPolicy div { border-right: 0; border-bottom: 1px solid #dce4e2; }
-  .qualityPolicy div:last-child { border-bottom: 0; }
-  .opsFocusGrid article:last-child { grid-column: auto; }
   .qualityItem > header { flex-direction: column; }
   .qualitySummary { grid-template-columns: repeat(3, 1fr); }
   .qualitySummary div { padding: 10px; }
@@ -3488,6 +3487,19 @@
   .adminUserHeader { display: none; }
   .adminUserTable article { grid-template-columns: 1fr 105px; padding: 12px 14px; }
   .adminUserTable time { grid-column: 1 / -1; grid-row: 2; }
+  .adminSelectionBar { align-items: stretch; flex-wrap: wrap; }
+  .adminSelectionBar strong { width: 100%; }
+  .adminQuizTable article { grid-template-columns: 22px minmax(0, 1fr); gap: 8px 10px; padding: 12px; }
+  .adminQuizTable .adminStatus { grid-column: 2; justify-self: start; }
+  .adminQuizTable time { grid-column: 2; }
+  .adminQuizActions { grid-column: 1 / -1; grid-row: auto; justify-content: flex-start; padding-top: 4px; }
+  .adminActivityMetrics { grid-template-columns: repeat(2, 1fr); }
+  .adminActivityMetrics div:nth-child(2) { border-right: 0; }
+  .adminActivityMetrics div:nth-child(-n+2) { border-bottom: 1px solid #d9e1df; }
+  .adminActivityList article { grid-template-columns: minmax(0, 1fr) 54px; }
+  .adminActivityList time { grid-column: 1 / -1; text-align: left; }
+  .adminFailureRows article { grid-template-columns: minmax(0, 1fr) 48px; padding: 8px 0; }
+  .adminFailureRows time { grid-column: 1 / -1; text-align: left; }
   .adminLockList article, .adminAuditList article { grid-template-columns: 1fr auto; padding: 12px 14px; }
   .adminLockList time, .adminAuditList time { grid-column: 1 / -1; grid-row: 2; text-align: left; }
   .adminFooter { align-items: stretch; flex-direction: column; }

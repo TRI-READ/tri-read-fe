@@ -11,7 +11,6 @@ TRI:READ의 Next.js 웹 애플리케이션입니다. 사용자는 평일마다 �
 | ![주간 학습 기록](docs/images/study-history.png) | ![지문을 함께 보는 오답 복습](docs/images/wrong-answer-review.png) |
 
 - 운영 주소: https://tri-read.duckdns.org
-- 릴리스: https://github.com/TRI-READ/tri-read-fe/releases/tag/v1.0.0
 - [사용자 흐름, 프론트 구조와 문제 해결 기록](docs/portfolio.md)
 
 ## 기술 스택
@@ -111,7 +110,7 @@ npm audit --omit=dev --audit-level=high
 
 Playwright 테스트의 API 응답은 격리된 가짜 응답을 사용하므로 운영 DB를 변경하지 않습니다.
 
-2026-08-10 로컬 `dev` 기준으로 프로덕션 빌드가 성공했고, 데스크톱·모바일 Playwright 시나리오 29개가 통과했으며 1개는 중복 실행을 피하기 위해 의도적으로 제외됐습니다. 빈 퀴즈 안내, 일시적인 API 장애 후 재시도 복구, 키보드 로그인도 회귀 테스트에 포함합니다.
+2026-08-09 로컬 `dev` 기준으로 프로덕션 빌드가 성공했고, 데스크톱·모바일 Playwright 시나리오 21개가 통과했으며 1개는 중복 실행을 피하기 위해 의도적으로 제외됐습니다.
 
 OCI용 정적 결과물은 다음과 같이 생성합니다.
 
