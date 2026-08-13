@@ -480,16 +480,18 @@ export function CompletedView({ quiz, attempts = getQuizAttempts(quiz) }) {
   );
 }
 
-export function EmptyQuiz({ message, onRetry }) {
+export function EmptyQuiz({ code, message, onRetry }) {
+  const isEmpty = code === "TODAY_QUIZ_NOT_FOUND";
+
   return (
-    <section className={styles.emptyQuiz}>
+    <section className={styles.emptyQuiz} role={isEmpty ? "status" : "alert"}>
       <span>
         <Orbit size={30} />
       </span>
-      <h1>오늘의 퀴즈를 불러오지 못했어요</h1>
-      <p>{message}</p>
+      <h1>{isEmpty ? "오늘 준비된 퀴즈가 없어요" : "오늘의 퀴즈를 불러오지 못했어요"}</h1>
+      <p>{message || (isEmpty ? "오늘은 아직 등록된 퀴즈가 없어요." : "잠시 후 다시 시도해 주세요.")}</p>
       <button className={styles.secondaryButton} type="button" onClick={onRetry}>
-        다시 확인
+        {isEmpty ? "다시 확인" : "다시 시도"}
       </button>
     </section>
   );

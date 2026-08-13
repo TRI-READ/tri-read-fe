@@ -7,6 +7,13 @@ const admin = {
   role: "ADMIN",
 };
 
+const regularUser = {
+  userId: 2,
+  loginName: "reader01",
+  displayName: "독해러",
+  role: "USER",
+};
+
 const emptyPage = (size) => ({
   items: [],
   page: 0,
@@ -15,7 +22,7 @@ const emptyPage = (size) => ({
   totalPages: 0,
 });
 
-async function mockAdminApi(page) {
+async function mockAdminApi(page, currentUser = admin) {
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -27,7 +34,7 @@ async function mockAdminApi(page) {
       });
     }
     if (path === "/api/auth/me") {
-      return route.fulfill({ json: admin });
+      return route.fulfill({ json: currentUser });
     }
     if (path === "/api/quizzes/today") {
       return route.fulfill({
@@ -143,4 +150,25 @@ test("관리자는 실제 풀이 데이터로 판정된 퀴즈 품질을 확인�
   await expect(page.getByText("정답률이 20%로 너무 낮습니다.")).toBeVisible();
   await expect(page.getByText("2번 오답에 오답 응답의 75%가 집중되었습니다.")).toBeVisible();
   await expect(page.getByText("두 번째 선택지")).toBeVisible();
+});
+
+test("일반 사용자는 관리자 화면에 머물 수 없다", async ({ page }) => {
+  await mockAdminApi(page, regularUser);
+  await page.goto("/admin");
+
+  await expect(page).toHaveURL(/\/quiz\/?$/);
+  await expect(page.getByText("ADMIN CONSOLE")).toHaveCount(0);
+});
+
+test("모바일 관리자 화면은 가로로 넘치지 않는다", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "mobile only");
+
+  await mockAdminApi(page);
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "운영 현황" })).toBeVisible();
+
+  const overflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
 });

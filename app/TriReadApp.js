@@ -101,6 +101,7 @@ export default function TriReadApp() {
   const [quiz, setQuiz] = useState(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizError, setQuizError] = useState("");
+  const [quizErrorCode, setQuizErrorCode] = useState("");
   const [activePassage, setActivePassage] = useState(null);
   const [selections, setSelections] = useState({});
   const [result, setResult] = useState(null);
@@ -176,6 +177,7 @@ export default function TriReadApp() {
   async function loadQuiz(currentUserId = user?.userId) {
     setQuizLoading(true);
     setQuizError("");
+    setQuizErrorCode("");
     try {
       const todayQuiz = await apiFetch("/api/quizzes/today", {
         method: "POST",
@@ -188,6 +190,7 @@ export default function TriReadApp() {
     } catch (error) {
       setQuiz(null);
       setQuizError(getErrorMessage(error));
+      setQuizErrorCode(error instanceof ApiError ? error.code : "");
     } finally {
       setQuizLoading(false);
     }
@@ -1022,7 +1025,7 @@ export default function TriReadApp() {
           </div>
         )
       ) : (
-        <EmptyQuiz message={quizError} onRetry={() => loadQuiz(user.userId)} />
+        <EmptyQuiz code={quizErrorCode} message={quizError} onRetry={() => loadQuiz(user.userId)} />
       )}
       <AccountPinDialog open={accountDialogOpen} onClose={() => setAccountDialogOpen(false)} onChanged={handlePinChanged} />
     </main>
