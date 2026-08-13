@@ -626,6 +626,22 @@ export default function TriReadApp() {
     }
     finally { setAdminActionLoading(""); }
   }
+  async function cleanupStaleAdminGenerations() {
+    setAdminActionLoading("cleanup-stale"); setAdminError("");
+    try {
+      const result = await apiFetch("/api/admin/quiz-generations/stale/cleanup?staleMinutes=30", { method: "POST" });
+      await Promise.all([
+        loadAdminConsole({ generation: 0 }),
+        loadAdminGenerationFailures(),
+      ]);
+      return result;
+    } catch (error) {
+      setAdminError(getErrorMessage(error));
+      return null;
+    } finally {
+      setAdminActionLoading("");
+    }
+  }
   async function loadAdminGeneration(generationLogId) {
     if (!generationLogId) { setAdminGenerationDetail(null); return; }
     setAdminError("");
@@ -933,6 +949,7 @@ export default function TriReadApp() {
           onBulk={bulkAdminQuizzes}
           onGenerate={generateAdminQuiz}
           onRetry={retryAdminGeneration}
+          onCleanupStale={cleanupStaleAdminGenerations}
           onLoadGeneration={loadAdminGeneration}
           onUpdateRole={updateAdminRole}
           onUpdateEnabled={updateAdminEnabled}

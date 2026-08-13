@@ -380,6 +380,23 @@ const ADMIN_PATHS = {
   security: "/admin/security",
 };
 
+const GENERATION_ERROR_STAGES = {
+  STALE_GENERATION_TIMEOUT: "작업 시간 초과",
+  GEMINI_SOURCE_REQUEST_FAILED: "참고 자료 수집",
+  GEMINI_GENERATION_REQUEST_FAILED: "퀴즈 초안 생성",
+  GEMINI_REPAIR_REQUEST_FAILED: "퀴즈 보정",
+  GEMINI_VALIDATION_REQUEST_FAILED: "AI 품질 검증",
+  QUIZ_GENERATION_FAILED: "생성 처리",
+};
+
+function parseGenerationError(errorMessage) {
+  if (!errorMessage) return null;
+  const separator = errorMessage.indexOf(":");
+  const code = separator > 0 ? errorMessage.slice(0, separator).trim() : "UNKNOWN";
+  const message = separator > 0 ? errorMessage.slice(separator + 1).trim() : errorMessage;
+  return { code, stage: GENERATION_ERROR_STAGES[code] || "생성 처리", message };
+}
+
 function getAdminSection(pathname) {
   if (pathname.startsWith(ADMIN_PATHS.editor)) return "editor";
   return Object.entries(ADMIN_PATHS).find(([, path]) => path !== "/admin" && pathname.startsWith(path))?.[0] || "overview";
@@ -389,7 +406,7 @@ export function AdminQuizHub({
   currentUser, quizPage, generationPage, generationDetail, userPage, promptPage, loading, actionLoading, error,
   quizFilters, generationFilters, generationFailures, qualityPage, qualityFilters, userActivity, loginLocks, auditPage, auditFilters,
   operationsSummary, operationsNotificationStatus, operationsNotice,
-  onCreate, onUpdate, onDelete, onLoad, onReview, onPublish, onBulk, onGenerate, onRetry,
+  onCreate, onUpdate, onDelete, onLoad, onReview, onPublish, onBulk, onGenerate, onRetry, onCleanupStale,
   onLoadGeneration, onUpdateRole, onUpdateEnabled, onResetPin, onLoadPrompts, onCreatePrompt, onActivatePrompt, onRefresh, onQuizPageChange,
   onQuizFilterChange, onGenerationPageChange, onGenerationFilterChange, onLoadGenerationFailures, onQualityFilterChange, onQualityPageChange,
   onUserPageChange, onLoadUserActivity, onLoadSecurity, onAuditFilterChange, onUnlockLogin, onLoadOperations, onLoadQuality, onTestNotification,
@@ -406,6 +423,16 @@ export function AdminQuizHub({
   const [generationDate, setGenerationDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [filterStatus, setFilterStatus] = useState(generationFilters?.status || "");
   const [filterDate, setFilterDate] = useState(generationFilters?.targetDate || "");
+  const [cleanupMessage, setCleanupMessage] = useState("");
+  const generationFailure = parseGenerationError(generationDetail?.log?.errorMessage);
+
+  async function cleanupStale() {
+    const result = await onCleanupStale();
+    if (!result) return;
+    setCleanupMessage(result.failedCount > 0
+      ? `${result.failedCount}개의 멈춘 작업을 정리했습니다.`
+      : "정리할 멈춘 작업이 없습니다.");
+  }
 
   useEffect(() => {
     if (section === "security") onLoadSecurity(0, auditFilters);
@@ -554,9 +581,11 @@ export function AdminQuizHub({
             <div className={styles.adminGenerateControls}>
               <label>대상 날짜<input type="date" value={generationDate} onChange={(event) => setGenerationDate(event.target.value)} /></label>
               <button className={styles.primaryButton} type="button" onClick={generateQuiz} disabled={Boolean(actionLoading)}><Sparkles size={16} /> {actionLoading === "generate" ? "생성 중..." : "Gemini로 생성"}</button>
+              <button type="button" onClick={cleanupStale} disabled={Boolean(actionLoading)} title="30분 이상 멈춘 생성 작업 정리"><RefreshCw size={16} /> {actionLoading === "cleanup-stale" ? "정리 중..." : "멈춘 작업 정리"}</button>
             </div>
           </header>
           {error && <div className={styles.adminError}>{error}</div>}
+          {cleanupMessage && <p className={styles.adminValidationMode}>{cleanupMessage}</p>}
           <div className={styles.adminMetrics}>
             <div><span>발행 대기</span><strong>{quizPage?.pendingCount || 0}</strong></div>
             <div><span>생성 성공</span><strong>{generationPage?.successCount || 0}</strong></div>
@@ -574,7 +603,7 @@ export function AdminQuizHub({
               <div className={styles.adminFailureRows}>
                 {generationFailures.map((failure) => (
                   <article key={failure.errorCode}>
-                    <strong>{failure.errorCode}</strong>
+                    <strong>{GENERATION_ERROR_STAGES[failure.errorCode] || failure.errorCode}</strong>
                     <span>{failure.failureCount}건</span>
                     <time>{formatDateTime(failure.lastOccurredAt)}</time>
                   </article>
@@ -629,7 +658,7 @@ export function AdminQuizHub({
           </section>
           {generationDetail && <section className={styles.adminValidationPanel}>
             <header><div><span>GENERATION #{generationDetail.log.generationLogId}</span><h2>검증 상세</h2></div><button type="button" onClick={() => onLoadGeneration(null)} aria-label="검증 상세 닫기" title="닫기"><X size={17} /></button></header>
-            {generationDetail.log.errorMessage && <p className={styles.adminFailureReason}>{generationDetail.log.errorMessage}</p>}
+            {generationFailure && <p className={styles.adminFailureReason}><strong>{generationFailure.stage} · {generationFailure.code}</strong><br />{generationFailure.message}</p>}
             {generationDetail.sources?.length > 0 && <section className={styles.adminSourceReview}>
               <div className={styles.adminSectionHeading}><div><span>GROUNDING</span><h2>지문 생성 참고 자료</h2></div><b>{generationDetail.sources.length}개</b></div>
               <div>
