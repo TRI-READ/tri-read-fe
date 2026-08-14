@@ -94,7 +94,7 @@ function createOrbit(reviewRecovered = false) {
   };
 }
 
-function createReview(status) {
+function createReview(status, overrides = {}) {
   return {
     reviewId: 501,
     questionId: 2,
@@ -113,6 +113,7 @@ function createReview(status) {
     createdAt: "2026-07-28T09:00:00+09:00",
     lastReviewedAt: status === "RECOVERED" ? "2026-07-28T10:00:00+09:00" : null,
     recoveredAt: status === "RECOVERED" ? "2026-07-28T10:00:00+09:00" : null,
+    ...overrides,
   };
 }
 
@@ -139,6 +140,8 @@ async function mockApi(page, options = {}) {
   const state = {
     authenticated: options.authenticated || false,
     quizAvailable: options.quizAvailable !== false,
+    quizErrorStatus: options.quizErrorStatus || null,
+    multipleReviews: options.multipleReviews || false,
     attempts: [],
     reviewStatus: "PENDING",
     group: null,
@@ -168,6 +171,12 @@ async function mockApi(page, options = {}) {
       return route.fulfill({ json: user });
     }
     if (path === "/api/quizzes/today" && method === "POST") {
+      if (state.quizErrorStatus) {
+        return route.fulfill({
+          status: state.quizErrorStatus,
+          json: { code: "QUIZ_LOAD_FAILED", message: "퀴즈를 불러오지 못했습니다." },
+        });
+      }
       if (!state.quizAvailable) {
         return route.fulfill({
           status: 404,
@@ -230,12 +239,24 @@ async function mockApi(page, options = {}) {
       const filter = url.searchParams.get("status") || "OPEN";
       const recovered = state.reviewStatus === "RECOVERED";
       const includeReview = filter === "ALL" || (filter === "OPEN" && !recovered) || (filter === "RECOVERED" && recovered);
+      const reviews = [createReview(state.reviewStatus)];
+      if (state.multipleReviews) {
+        reviews.push(createReview(state.reviewStatus, {
+          reviewId: 502,
+          questionId: 3,
+          questionPosition: 3,
+          questionContent: passages[0].questions[2].content,
+          selectedOption: passages[0].questions[2].options[1],
+          correctOption: passages[0].questions[2].options[0],
+        }));
+      }
+      const reviewCount = reviews.length;
       return route.fulfill({
         json: {
-          totalCount: 1,
-          openCount: recovered ? 0 : 1,
-          recoveredCount: recovered ? 1 : 0,
-          reviews: includeReview ? [createReview(state.reviewStatus)] : [],
+          totalCount: reviewCount,
+          openCount: recovered ? 0 : reviewCount,
+          recoveredCount: recovered ? reviewCount : 0,
+          reviews: includeReview ? reviews : [],
         },
       });
     }
@@ -336,6 +357,16 @@ test("로그인 후 메뉴 URL과 브라우저 뒤로가기가 동작한다", as
   await expect(page).toHaveURL(/\/groups\/?$/);
 });
 
+test("서버 오류는 오늘 퀴즈 없음과 다르게 안내한다", async ({ page }) => {
+  await mockApi(page, { authenticated: true, quizErrorStatus: 500 });
+  await page.goto("/quiz");
+
+  await expect(page.getByRole("heading", { name: "오늘의 퀴즈를 불러오지 못했어요" })).toBeVisible();
+  await expect(page.locator("section[role='alert']")).toBeVisible();
+  await expect(page.getByRole("button", { name: "다시 시도" })).toBeVisible();
+  await expect(page.getByText("오늘 준비된 퀴즈가 없어요")).toHaveCount(0);
+});
+
 test("기본 지문을 마치면 남은 두 지문을 보너스로 풀 수 있다", async ({ page }) => {
   await mockApi(page);
   await login(page);
@@ -368,6 +399,19 @@ test("오답에서 지문을 확인하고 복습하면 학습 기록에 반영�
   await page.getByRole("link", { name: "학습 기록" }).click();
   await expect(page.getByRole("heading", { name: "학습 기록" })).toBeVisible();
   await expect(page.getByText("2/3 · 복습 1/1")).toBeVisible();
+});
+
+test("여러 오답을 이전과 다음 버튼으로 이동한다", async ({ page }) => {
+  await mockApi(page, { authenticated: true, multipleReviews: true });
+  await page.goto("/wrong-answers");
+
+  await expect(page.getByRole("heading", { name: passages[0].questions[1].content })).toBeVisible();
+  await expect(page.getByTestId("review-previous")).toBeDisabled();
+  await page.getByTestId("review-next").click();
+  await expect(page.getByRole("heading", { name: passages[0].questions[2].content })).toBeVisible();
+  await expect(page.getByTestId("review-next")).toBeDisabled();
+  await page.getByTestId("review-previous").click();
+  await expect(page.getByRole("heading", { name: passages[0].questions[1].content })).toBeVisible();
 });
 
 test("학습 기록의 미래 날짜는 미완료가 아니라 예정으로 표시한다", async ({ page }) => {

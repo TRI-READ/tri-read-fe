@@ -3,6 +3,7 @@
 import {
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   NotebookPen,
@@ -28,6 +29,7 @@ export function ReviewHub({
 }) {
   const reviews = reviewData?.reviews || [];
   const selectedReview = reviews.find((review) => review.reviewId === selectedReviewId) || null;
+  const selectedReviewIndex = reviews.findIndex((review) => review.reviewId === selectedReviewId);
   const totalCount = reviewData?.totalCount || 0;
   const recoveredCount = reviewData?.recoveredCount || 0;
   const completionRate = totalCount === 0 ? 100 : Math.round((recoveredCount / totalCount) * 100);
@@ -36,6 +38,13 @@ export function ReviewHub({
     { value: "RECOVERED", label: "복습 완료", count: recoveredCount },
     { value: "ALL", label: "전체", count: totalCount },
   ];
+
+  function moveReview(offset) {
+    const nextReview = reviews[selectedReviewIndex + offset];
+    if (nextReview) {
+      onSelectReview(nextReview.reviewId);
+    }
+  }
 
   return (
     <section className={styles.reviewHub}>
@@ -118,10 +127,33 @@ export function ReviewHub({
                 <h1>{selectedReview.passageTitle || "오늘의 독해"}</h1>
                 <span>{selectedReview.challengeDate} · {selectedReview.retryCount}회 복습</span>
               </div>
-              <span className={selectedReview.status === "RECOVERED" ? styles.recoveredBadge : styles.pendingBadge}>
-                {selectedReview.status === "RECOVERED" ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}
-                {selectedReview.status === "RECOVERED" ? "복습 완료" : "복습 필요"}
-              </span>
+              <div className={styles.reviewHeaderActions}>
+                <span className={selectedReview.status === "RECOVERED" ? styles.recoveredBadge : styles.pendingBadge}>
+                  {selectedReview.status === "RECOVERED" ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}
+                  {selectedReview.status === "RECOVERED" ? "복습 완료" : "복습 필요"}
+                </span>
+                <nav className={styles.reviewPager} aria-label="오답 문제 이동">
+                  <button
+                    type="button"
+                    title="이전 오답"
+                    data-testid="review-previous"
+                    onClick={() => moveReview(-1)}
+                    disabled={selectedReviewIndex <= 0}
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+                  <span>{selectedReviewIndex + 1} / {reviews.length}</span>
+                  <button
+                    type="button"
+                    title="다음 오답"
+                    data-testid="review-next"
+                    onClick={() => moveReview(1)}
+                    disabled={selectedReviewIndex >= reviews.length - 1}
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+                </nav>
+              </div>
             </header>
 
             {selectedReview.passageContent && (

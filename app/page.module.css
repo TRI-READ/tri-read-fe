@@ -2180,6 +2180,44 @@
   font-weight: 750;
 }
 
+.reviewHeaderActions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reviewPager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reviewPager button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #d4dfdc;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #2b4148;
+}
+
+.reviewPager button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.reviewPager span {
+  min-width: 42px;
+  color: #68787d;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
 .pendingBadge,
 .recoveredBadge {
   display: inline-flex;
@@ -2257,7 +2295,7 @@
 .reviewPassage p {
   margin: 0 0 14px;
   color: #35484f;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.95;
   white-space: pre-wrap;
 }
@@ -3585,6 +3623,11 @@
     flex-direction: column;
   }
 
+  .reviewHeaderActions {
+    width: 100%;
+    align-items: flex-start;
+  }
+
   .reviewPassage summary {
     padding: 14px 15px;
   }
@@ -3595,8 +3638,8 @@
   }
 
   .reviewPassage p {
-    font-size: 14px;
-    line-height: 1.85;
+    font-size: 17px;
+    line-height: 1.9;
   }
 
   .reviewQuestion {
