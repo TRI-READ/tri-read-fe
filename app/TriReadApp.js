@@ -99,6 +99,8 @@ export default function TriReadApp() {
   const [authMode, setAuthMode] = useState("login");
   const [user, setUser] = useState(null);
   const [quiz, setQuiz] = useState(null);
+  const [todayQuiz, setTodayQuiz] = useState(null);
+  const [bonusQuizzes, setBonusQuizzes] = useState([]);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizError, setQuizError] = useState("");
   const [quizErrorCode, setQuizErrorCode] = useState("");
@@ -178,20 +180,26 @@ export default function TriReadApp() {
     setQuizLoading(true);
     setQuizError("");
     setQuizErrorCode("");
+    const bonusRequest = apiFetch("/api/quizzes/bonus")
+      .then((response) => setBonusQuizzes(response?.quizzes || []))
+      .catch(() => setBonusQuizzes([]));
     try {
       const todayQuiz = await apiFetch("/api/quizzes/today", {
         method: "POST",
       });
       const draft = findQuizDraft(currentUserId, todayQuiz);
+      setTodayQuiz(todayQuiz);
       setQuiz(todayQuiz);
       setSelections(draft?.selections || {});
       setResult(null);
       setActivePassage(draft?.passageIndex ?? null);
     } catch (error) {
+      setTodayQuiz(null);
       setQuiz(null);
       setQuizError(getErrorMessage(error));
       setQuizErrorCode(error instanceof ApiError ? error.code : "");
     } finally {
+      await bonusRequest;
       setQuizLoading(false);
     }
   }
@@ -784,6 +792,8 @@ export default function TriReadApp() {
       resetCsrfToken();
       setUser(null);
       setQuiz(null);
+      setTodayQuiz(null);
+      setBonusQuizzes([]);
       setResult(null);
       setSelections({});
       setActivePassage(null);
@@ -826,7 +836,18 @@ export default function TriReadApp() {
     setSubmitError("");
   }
 
+  function handleChooseBonus(bonusQuiz, index) {
+    setQuiz(bonusQuiz);
+    setActivePassage(index);
+    setSelections(readQuizDraft(user.userId, bonusQuiz, index));
+    setResult(null);
+    setSubmitError("");
+  }
+
   function handleChangeArea() {
+    if (todayQuiz && quiz?.quizSetId !== todayQuiz.quizSetId) {
+      setQuiz(todayQuiz);
+    }
     setActivePassage(null);
     setSelections({});
     setSubmitError("");
@@ -1000,6 +1021,8 @@ export default function TriReadApp() {
           <PassagePicker
             quiz={quiz}
             onChoose={handleChoosePassage}
+            bonusQuizzes={bonusQuizzes}
+            onChooseBonus={handleChooseBonus}
           />
         ) : (
           <div className={styles.appBody}>

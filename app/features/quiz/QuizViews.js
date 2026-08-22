@@ -10,6 +10,7 @@ import {
   Clock3,
   ExternalLink,
   NotebookPen,
+  Library,
   Orbit,
   Send,
   Sparkles,
@@ -69,7 +70,7 @@ export function getQuizAttempts(quiz) {
   return quiz.attempt ? [quiz.attempt] : [];
 }
 
-export function PassagePicker({ quiz, onChoose }) {
+export function PassagePicker({ quiz, onChoose, bonusQuizzes = [], onChooseBonus }) {
   const attempts = getQuizAttempts(quiz);
   const attemptsByPassage = new Map(attempts.map((attempt) => [attempt.passageId, attempt]));
   const primaryCompleted = attempts.some((attempt) => attempt.attemptType === "PRIMARY") || Boolean(quiz.attempt);
@@ -148,6 +149,57 @@ export function PassagePicker({ quiz, onChoose }) {
         })}
       </div>
       {attempts.length > 0 && <CompletedView quiz={quiz} attempts={attempts} />}
+      <BonusShelf quizzes={bonusQuizzes} onChoose={onChooseBonus} />
+    </section>
+  );
+}
+
+function BonusShelf({ quizzes, onChoose }) {
+  const remaining = quizzes.flatMap((bonusQuiz) => {
+    const completed = new Set(
+      getQuizAttempts(bonusQuiz).map((attempt) => attempt.passageId),
+    );
+    return bonusQuiz.passages
+      .map((passage, index) => ({ bonusQuiz, passage, index }))
+      .filter(({ passage }) => !completed.has(passage.passageId));
+  });
+
+  if (remaining.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className={styles.bonusShelf} aria-labelledby="bonus-shelf-title">
+      <header>
+        <span><Library size={18} /></span>
+        <div>
+          <p className={styles.eyebrow}>남은 지문</p>
+          <h2 id="bonus-shelf-title">지나간 글도 천천히 이어 읽어요</h2>
+          <p>기본 학습을 마친 날의 미완료 지문입니다. 스트릭과 별개로 언제든 풀 수 있어요.</p>
+        </div>
+      </header>
+      <div className={styles.bonusShelfGrid}>
+        {remaining.map(({ bonusQuiz, passage, index }) => {
+          const area = PASSAGE_AREAS[index] || PASSAGE_AREAS[0];
+          const AreaIcon = area.icon;
+          return (
+            <button
+              key={`${bonusQuiz.quizSetId}:${passage.passageId}`}
+              type="button"
+              className={styles.bonusShelfItem}
+              aria-label={`남은 지문: ${passage.title}`}
+              onClick={() => onChoose(bonusQuiz, index)}
+            >
+              <span><AreaIcon size={20} /></span>
+              <span>
+                <small>{bonusQuiz.challengeDate} · {area.label}</small>
+                <strong>{passage.title}</strong>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -155,13 +207,20 @@ export function PassagePicker({ quiz, onChoose }) {
 export function QuizRail({ quiz, selectedCount, activePassage, onChangeArea, result, weekOrbit }) {
   const passage = quiz.passages[activePassage];
   const area = PASSAGE_AREAS[activePassage] || PASSAGE_AREAS[0];
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const isTodayQuiz = quiz.challengeDate === today;
   return (
     <aside className={styles.studyRail}>
       <div className={styles.dateBlock}>
         <CalendarDays size={18} />
         <div>
-          <span>오늘</span>
-          <strong>{formatToday()}</strong>
+          <span>{isTodayQuiz ? "오늘" : "보너스 학습일"}</span>
+          <strong>{isTodayQuiz ? formatToday() : quiz.challengeDate}</strong>
         </div>
       </div>
 

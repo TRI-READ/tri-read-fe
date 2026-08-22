@@ -143,6 +143,7 @@ async function mockApi(page, options = {}) {
     quizErrorStatus: options.quizErrorStatus || null,
     multipleReviews: options.multipleReviews || false,
     attempts: [],
+    bonusQuizzes: options.bonusQuizzes || [],
     reviewStatus: "PENDING",
     group: null,
   };
@@ -195,6 +196,9 @@ async function mockApi(page, options = {}) {
           passages,
         },
       });
+    }
+    if (path === "/api/quizzes/bonus" && method === "GET") {
+      return route.fulfill({ json: { quizzes: state.bonusQuizzes } });
     }
     if (/^\/api\/quizzes\/\d+\/attempts$/.test(path) && method === "POST") {
       const body = request.postDataJSON();
@@ -399,6 +403,42 @@ test("오답에서 지문을 확인하고 복습하면 학습 기록에 반영�
   await page.getByRole("link", { name: "학습 기록" }).click();
   await expect(page.getByRole("heading", { name: "학습 기록" })).toBeVisible();
   await expect(page.getByText("2/3 · 복습 1/1")).toBeVisible();
+});
+
+test("지난 학습의 남은 지문을 보너스 서재에서 다시 연다", async ({ page }) => {
+  await mockApi(page, {
+    authenticated: true,
+    bonusQuizzes: [{
+      quizSetId: 302,
+      challengeDate: "2026-07-27",
+      variantCode: "A",
+      difficulty: "HIGH_SCHOOL_3",
+      attempt: {
+        attemptId: 801,
+        passageId: 101,
+        attemptType: "PRIMARY",
+        score: 3,
+        totalQuestions: 3,
+        completedAt: "2026-07-27T10:00:00+09:00",
+      },
+      attempts: [{
+        attemptId: 801,
+        passageId: 101,
+        attemptType: "PRIMARY",
+        score: 3,
+        totalQuestions: 3,
+        completedAt: "2026-07-27T10:00:00+09:00",
+      }],
+      bonusUnlocked: true,
+      passages,
+    }],
+  });
+
+  await page.goto("/quiz");
+
+  await expect(page.getByRole("heading", { name: "지나간 글도 천천히 이어 읽어요" })).toBeVisible();
+  await page.getByRole("button", { name: "남은 지문: 선택을 바꾸는 기준점" }).click();
+  await expect(page.getByRole("heading", { name: "선택을 바꾸는 기준점" })).toBeVisible();
 });
 
 test("여러 오답을 이전과 다음 버튼으로 이동한다", async ({ page }) => {

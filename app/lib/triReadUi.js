@@ -80,6 +80,8 @@ export function getErrorMessage(error) {
     LOGIN_NAME_ALREADY_EXISTS: "이미 사용 중인 아이디예요.",
     INVALID_REQUEST: "입력한 내용을 다시 확인해 주세요.",
     TODAY_QUIZ_NOT_FOUND: "오늘은 등록된 퀴즈가 없어요.",
+    ASSIGNED_QUIZ_NOT_FOUND: "배정된 퀴즈를 찾을 수 없어요.",
+    BONUS_QUIZ_LOCKED: "먼저 해당 날짜의 기본 지문을 완료해 주세요.",
     QUIZ_ALREADY_COMPLETED: "이미 완료한 지문이에요. 다른 영역을 골라 주세요.",
     AUTHENTICATION_REQUIRED: "다시 로그인해 주세요.",
     GROUP_ALREADY_JOINED: "이미 참여 중인 그룹이에요.",
