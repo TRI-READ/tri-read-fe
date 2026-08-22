@@ -27,7 +27,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.62.1"
   },
   "overrides": {
     "nanoid": "3.3.18",
