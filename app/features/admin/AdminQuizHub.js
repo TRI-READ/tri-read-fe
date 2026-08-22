@@ -337,6 +337,7 @@ export function AdminOperationsPanel({
               <div><dt>최근 생성</dt><dd>{summary.lastSchedulerRun?.status || "기록 없음"}</dd></div>
               <div><dt>생성 완료</dt><dd>{formatDateTime(summary.lastSchedulerRun?.completedAt)}</dd></div>
               <div><dt>다음 생성</dt><dd>{formatDateTime(summary.nextSchedulerRun)}</dd></div>
+              <div><dt>Gemini 자동 재개</dt><dd>{summary.geminiRetryAt ? formatDateTime(summary.geminiRetryAt) : "제한 없음"}</dd></div>
               <div><dt>최근 DB 백업</dt><dd>{summary.lastBackupRun?.status || "기록 없음"}</dd></div>
               <div><dt>백업 완료</dt><dd>{formatDateTime(summary.lastBackupRun?.completedAt)}</dd></div>
               <div><dt>로그인 잠금</dt><dd>{summary.activeLoginLocks}건</dd></div>
