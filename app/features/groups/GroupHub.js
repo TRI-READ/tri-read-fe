@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  UserRound,
   UserMinus,
   UsersRound,
   X,
@@ -108,60 +109,102 @@ export function GroupActionDialog({ mode, onClose, onSubmit, submitting, error }
   );
 }
 
-export function AccountPinDialog({ open, onClose, onChanged }) {
+export function AccountDialog({ open, user, onClose, onDisplayNameChanged, onPinChanged }) {
+  const [displayName, setDisplayName] = useState(user.displayName);
+  const [displaySubmitting, setDisplaySubmitting] = useState(false);
+  const [displayError, setDisplayError] = useState("");
+  const [displaySuccess, setDisplaySuccess] = useState("");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [pinError, setPinError] = useState("");
 
   useEffect(() => {
+    setDisplayName(user.displayName);
     if (!open) {
       setCurrentPin("");
       setNewPin("");
       setConfirmPin("");
-      setError("");
+      setDisplayError("");
+      setDisplaySuccess("");
+      setPinError("");
     }
-  }, [open]);
+  }, [open, user.displayName]);
 
   if (!open) return null;
 
-  async function submit(event) {
+  async function submitDisplayName(event) {
+    event.preventDefault();
+    setDisplaySubmitting(true);
+    setDisplayError("");
+    setDisplaySuccess("");
+    try {
+      const updatedUser = await apiFetch("/api/auth/display-name", {
+        method: "PATCH",
+        body: JSON.stringify({ displayName }),
+      });
+      setDisplayName(updatedUser.displayName);
+      setDisplaySuccess("닉네임이 변경되었습니다.");
+      onDisplayNameChanged(updatedUser);
+    } catch (requestError) {
+      setDisplayError(getErrorMessage(requestError));
+    } finally {
+      setDisplaySubmitting(false);
+    }
+  }
+
+  async function submitPin(event) {
     event.preventDefault();
     if (newPin !== confirmPin) {
-      setError("새 PIN 확인이 일치하지 않아요.");
+      setPinError("새 PIN 확인이 일치하지 않아요.");
       return;
     }
-    setSubmitting(true);
-    setError("");
+    setPinSubmitting(true);
+    setPinError("");
     try {
       await apiFetch("/api/auth/pin", {
         method: "PATCH",
         body: JSON.stringify({ currentPin, newPin }),
       });
-      onChanged();
+      onPinChanged();
     } catch (requestError) {
-      setError(getErrorMessage(requestError));
+      setPinError(getErrorMessage(requestError));
     } finally {
-      setSubmitting(false);
+      setPinSubmitting(false);
     }
   }
 
   return (
     <div className={styles.dialogBackdrop} role="presentation">
-      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="pin-dialog-title">
+      <section className={styles.groupDialog} role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
         <header>
-          <div><p className={styles.eyebrow}>ACCOUNT SECURITY</p><h2 id="pin-dialog-title">PIN 변경</h2></div>
+          <div><p className={styles.eyebrow}>ACCOUNT SETTINGS</p><h2 id="account-dialog-title">계정 설정</h2></div>
           <button className={styles.iconButton} type="button" onClick={onClose} aria-label="닫기" title="닫기"><X size={18} /></button>
         </header>
-        <form className={styles.groupForm} onSubmit={submit}>
-          <label>현재 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={currentPin} onChange={(event) => setCurrentPin(event.target.value)} autoComplete="current-password" required autoFocus /></label>
-          <label>새 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={newPin} onChange={(event) => setNewPin(event.target.value)} autoComplete="new-password" required /></label>
-          <label>새 PIN 확인<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value)} autoComplete="new-password" required /></label>
-          <p className={styles.formHint}>변경 후 모든 기기에서 로그아웃됩니다.</p>
-          {error && <p className={styles.formError}>{error}</p>}
-          <button className={styles.primaryButton} type="submit" disabled={submitting}>{submitting ? "변경 중..." : "PIN 변경"}<KeyRound size={17} /></button>
-        </form>
+        <div className={styles.accountSections}>
+          <section className={styles.accountSection}>
+            <h3><UserRound size={17} />닉네임 변경</h3>
+            <form className={styles.groupForm} onSubmit={submitDisplayName}>
+              <label>닉네임<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={30} autoComplete="nickname" required autoFocus /></label>
+              <p className={styles.formHint}>변경 즉시 현재 화면과 다음 로그인에 반영됩니다.</p>
+              {displayError && <p className={styles.formError}>{displayError}</p>}
+              {displaySuccess && <p className={styles.formSuccess}>{displaySuccess}</p>}
+              <button className={styles.primaryButton} type="submit" disabled={displaySubmitting || displayName.trim() === user.displayName}>{displaySubmitting ? "변경 중..." : "닉네임 변경"}<UserRound size={17} /></button>
+            </form>
+          </section>
+          <section className={styles.accountSection}>
+            <h3><KeyRound size={17} />PIN 변경</h3>
+            <form className={styles.groupForm} onSubmit={submitPin}>
+              <label>현재 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={currentPin} onChange={(event) => setCurrentPin(event.target.value)} autoComplete="current-password" required /></label>
+              <label>새 PIN<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={newPin} onChange={(event) => setNewPin(event.target.value)} autoComplete="new-password" required /></label>
+              <label>새 PIN 확인<input type="password" inputMode="numeric" pattern="[0-9]{4,12}" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value)} autoComplete="new-password" required /></label>
+              <p className={styles.formHint}>변경 후 모든 기기에서 로그아웃됩니다.</p>
+              {pinError && <p className={styles.formError}>{pinError}</p>}
+              <button className={styles.primaryButton} type="submit" disabled={pinSubmitting}>{pinSubmitting ? "변경 중..." : "PIN 변경"}<KeyRound size={17} /></button>
+            </form>
+          </section>
+        </div>
       </section>
     </div>
   );

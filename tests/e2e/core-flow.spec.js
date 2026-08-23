@@ -139,6 +139,7 @@ function createGroup(name = "출근길 독해") {
 async function mockApi(page, options = {}) {
   const state = {
     authenticated: options.authenticated || false,
+    displayName: user.displayName,
     quizAvailable: options.quizAvailable !== false,
     quizErrorStatus: options.quizErrorStatus || null,
     multipleReviews: options.multipleReviews || false,
@@ -161,7 +162,7 @@ async function mockApi(page, options = {}) {
     }
     if (path === "/api/auth/me") {
       return state.authenticated
-        ? route.fulfill({ json: user })
+        ? route.fulfill({ json: { ...user, displayName: state.displayName } })
         : route.fulfill({
             status: 401,
             json: { code: "AUTHENTICATION_REQUIRED", message: "Authentication is required." },
@@ -169,7 +170,11 @@ async function mockApi(page, options = {}) {
     }
     if (path === "/api/auth/login") {
       state.authenticated = true;
-      return route.fulfill({ json: user });
+      return route.fulfill({ json: { ...user, displayName: state.displayName } });
+    }
+    if (path === "/api/auth/display-name" && method === "PATCH") {
+      state.displayName = request.postDataJSON().displayName.trim();
+      return route.fulfill({ json: { ...user, displayName: state.displayName } });
     }
     if (path === "/api/quizzes/today" && method === "POST") {
       if (state.quizErrorStatus) {
@@ -359,6 +364,20 @@ test("로그인 후 메뉴 URL과 브라우저 뒤로가기가 동작한다", as
 
   await page.goBack();
   await expect(page).toHaveURL(/\/groups\/?$/);
+});
+
+test("계정 설정에서 닉네임을 즉시 변경한다", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile-chromium", "desktop account control only");
+  await mockApi(page, { authenticated: true });
+  await page.goto("/quiz");
+
+  await page.getByRole("button", { name: /독해러/ }).click();
+  const dialog = page.getByRole("dialog", { name: "계정 설정" });
+  await dialog.getByLabel("닉네임").fill("서유원");
+  await dialog.getByRole("button", { name: "닉네임 변경" }).click();
+
+  await expect(dialog.getByText("닉네임이 변경되었습니다.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /서유원/ })).toBeVisible();
 });
 
 test("서버 오류는 오늘 퀴즈 없음과 다르게 안내한다", async ({ page }) => {
