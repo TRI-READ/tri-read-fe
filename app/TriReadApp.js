@@ -17,7 +17,7 @@ import {
   QuizWorkspace,
   EmptyQuiz,
 } from "./features/quiz/QuizViews";
-import { AccountPinDialog, GroupHub } from "./features/groups/GroupHub";
+import { AccountDialog, GroupHub } from "./features/groups/GroupHub";
 import { ReviewHub } from "./features/reviews/ReviewHub";
 import { AdminQuizHub } from "./features/admin/AdminQuizHub";
 import { OrbitHub } from "./features/history/OrbitHub";
@@ -836,6 +836,18 @@ export default function TriReadApp() {
     setSubmitError("");
   }
 
+  function handleDisplayNameChanged(updatedUser) {
+    setUser(updatedUser);
+    setAdminUserPage((current) => ({
+      ...current,
+      items: current.items.map((account) =>
+        account.userId === updatedUser.userId
+          ? { ...account, displayName: updatedUser.displayName }
+          : account,
+      ),
+    }));
+  }
+
   function handleChooseBonus(bonusQuiz, index) {
     setQuiz(bonusQuiz);
     setActivePassage(index);
@@ -1050,7 +1062,13 @@ export default function TriReadApp() {
       ) : (
         <EmptyQuiz code={quizErrorCode} message={quizError} onRetry={() => loadQuiz(user.userId)} />
       )}
-      <AccountPinDialog open={accountDialogOpen} onClose={() => setAccountDialogOpen(false)} onChanged={handlePinChanged} />
+      <AccountDialog
+        open={accountDialogOpen}
+        user={user}
+        onClose={() => setAccountDialogOpen(false)}
+        onDisplayNameChanged={handleDisplayNameChanged}
+        onPinChanged={handlePinChanged}
+      />
     </main>
   );
 }

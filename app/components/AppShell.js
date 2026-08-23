@@ -91,7 +91,7 @@ export function AppHeader({ user, streak, view, onAccountOpen, onLogout, logging
           <strong>{streak.currentStreak}</strong>
           <small>일 연속</small>
         </span>
-        <button className={styles.userBadge} type="button" onClick={onAccountOpen} title="계정 보안 설정">
+        <button className={styles.userBadge} type="button" onClick={onAccountOpen} title="계정 설정">
           <CircleUserRound size={18} />
           {user.displayName}
           <UserCog size={14} />
