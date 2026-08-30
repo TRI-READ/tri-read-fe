@@ -78,6 +78,13 @@ jobs:
             https://tri-read.duckdns.org/ \
             | grep -q '<title>TRI:READ</title>'
 
+      - name: Notify Discord on success
+        if: ${{ success() }}
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: bash deploy/notify-discord.sh SUCCESS "프론트엔드 배포 성공" "OCI 프론트엔드 배포와 운영 스모크 테스트가 정상적으로 완료되었습니다."
+
       - name: Notify Discord on failure
         if: ${{ failure() }}
         continue-on-error: true
