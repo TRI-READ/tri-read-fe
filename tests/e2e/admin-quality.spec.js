@@ -22,7 +22,26 @@ const emptyPage = (size) => ({
   totalPages: 0,
 });
 
-async function mockAdminApi(page, currentUser = admin) {
+const inventoryFixture = {
+  asOfDate: "2030-01-07", activeWindowDays: 30, warningThreshold: 14,
+  criticalThreshold: 7, reviewWaitHours: 48, status: "CRITICAL",
+  users: { activeUserCount: 2, minimumRemainingSets: 3, lowStockUserCount: 1 },
+  pool: {
+    draftCount: 2, reviewedCount: 3, availablePublishedCount: 20,
+    scheduledPublishedCount: 4, retiredPublishedCount: 1, overduePendingCount: 2,
+    oldestOverduePendingAt: "2030-01-04T03:00:00Z",
+  },
+  lowestStockUsers: [
+    { userId: 2, loginName: "reader01", displayName: "독해러", unassignedSetCount: 2, unstartedSetCount: 1, remainingSetCount: 3 },
+    { userId: 1, loginName: "admin", displayName: "관리자", unassignedSetCount: 19, unstartedSetCount: 1, remainingSetCount: 20 },
+  ],
+  alerts: [
+    { code: "LOW_USER_INVENTORY", severity: "CRITICAL", message: "활성 사용자 최저 재고가 3세트입니다." },
+    { code: "OVERDUE_PUBLICATION", severity: "WARNING", message: "사용 가능일이 되었지만 생성 후 48시간 이상 미발행인 세트가 2개 있습니다." },
+  ],
+};
+
+async function mockAdminApi(page, currentUser = admin, contentInventory = inventoryFixture) {
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -84,6 +103,7 @@ async function mockAdminApi(page, currentUser = admin) {
           recentFailures: [],
           recentAdminActions: [],
           inventory: [],
+          contentInventory,
         },
       });
     }
@@ -150,6 +170,41 @@ test("관리자는 실제 풀이 데이터로 판정된 퀴즈 품질을 확인�
   await expect(page.getByText("정답률이 20%로 너무 낮습니다.")).toBeVisible();
   await expect(page.getByText("2번 오답에 오답 응답의 75%가 집중되었습니다.")).toBeVisible();
   await expect(page.getByText("두 번째 선택지")).toBeVisible();
+});
+
+test("운영 현황은 개인 재고와 공통 풀, 장기 미발행 경보를 구분한다", async ({ page }) => {
+  await mockAdminApi(page);
+  await page.goto("/admin");
+  const inventory = page.getByRole("region", { name: "사용자별 실제 재고" });
+  await expect(inventory.getByRole("heading", { name: "사용자별 실제 재고" })).toBeVisible();
+  await expect(inventory.getByRole("alert")).toHaveCount(2);
+  await expect(inventory.getByText("활성 사용자 최저 재고가 3세트입니다.", { exact: false })).toBeVisible();
+  await expect(inventory.getByText("현재 배정 가능한 공통 풀", { exact: true })).toBeVisible();
+  const reader = inventory.getByRole("row").filter({ hasText: "@reader01" });
+  await expect(reader).toContainText("독해러");
+  await expect(reader.getByRole("cell").last()).toHaveText("긴급");
+  await expect(inventory.getByRole("link", { name: "퀴즈 관리에서 확인 →" })).toHaveAttribute("href", "/admin/quizzes");
+  await expect(page.getByRole("heading", { name: "날짜별 발행 현황" })).toBeVisible();
+});
+
+test("활성 사용자가 없으면 재고 0으로 오인하지 않고 판정을 보류한다", async ({ page }) => {
+  await mockAdminApi(page, admin, {
+    ...inventoryFixture, status: "NO_ACTIVE_USERS",
+    users: { activeUserCount: 0, minimumRemainingSets: null, lowStockUserCount: 0 },
+    lowestStockUsers: [], alerts: [],
+    pool: { ...inventoryFixture.pool, overduePendingCount: 0, oldestOverduePendingAt: null },
+  });
+  await page.goto("/admin");
+  const inventory = page.getByRole("region", { name: "사용자별 실제 재고" });
+  await expect(inventory.getByText("판단 보류", { exact: true })).toBeVisible();
+  await expect(inventory.getByText("—", { exact: true })).toBeVisible();
+  await expect(inventory.getByRole("alert")).toHaveCount(0);
+});
+
+test("재고 API가 아직 배포되지 않았으면 미확인 상태를 표시한다", async ({ page }) => {
+  await mockAdminApi(page, admin, null);
+  await page.goto("/admin");
+  await expect(page.getByText("재고 정보를 확인할 수 없습니다. 백엔드 배포 상태를 확인해 주세요.")).toBeVisible();
 });
 
 test("일반 사용자는 관리자 화면에 머물 수 없다", async ({ page }) => {
