@@ -1,0 +1,38 @@
+.section { margin-top: 28px; min-width: 0; color: #29433d; }
+.heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 20px 0 12px; }
+.heading span { color: #70817d; font-size: 10px; }
+.heading h2, .heading h3 { margin: 5px 0; }
+.heading h2 { font-size: 20px; }
+.heading h3 { font-size: 16px; }
+.heading a { color: #0d7666; font-size: 12px; }
+.section p { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #ccd7d4; background: #fff; }
+.metrics div { padding: 16px; border-right: 1px solid #d9e1df; }
+.metrics div:last-child { border-right: 0; }
+.metrics span { display: block; color: #61736d; font-size: 11px; }
+.metrics strong { display: block; margin-top: 8px; font-size: 22px; overflow-wrap: anywhere; }
+.stateHEALTHY { color: #0d806d; }
+.stateLOW { color: #92511a; }
+.stateCRITICAL { color: #a3342b; }
+.stateNO_ACTIVE_USERS { color: #61736d; }
+.warning, .critical { padding: 13px 16px; margin: 10px 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.warning { background: #fff8e7; color: #795317; border-left: 3px solid #c4912f; }
+.critical { background: #fff0ed; color: #97392d; border-left: 3px solid #c15a4a; }
+.empty { padding: 18px 0; }
+.tableWrap { overflow-x: auto; }
+.tableWrap table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12px; }
+.tableWrap caption { text-align: left; padding: 10px 0; color: #61736d; }
+.tableWrap th, .tableWrap td { padding: 12px; border-bottom: 1px solid #d9e1df; text-align: right; }
+.tableWrap th:first-child { text-align: left; overflow-wrap: anywhere; max-width: 180px; }
+.tableWrap small { display: block; margin-top: 4px; color: #61736d; font-weight: 400; overflow-wrap: anywhere; }
+.pending { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.pending div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #d9e1df; font-size: 12px; }
+.pending dd { margin: 0; white-space: nowrap; }
+@media (max-width: 680px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics div:nth-child(2) { border-right: 0; }
+  .metrics div:nth-child(-n+2) { border-bottom: 1px solid #d9e1df; }
+  .metrics div { padding: 12px; }
+  .metrics strong { font-size: 19px; }
+  .tableWrap th, .tableWrap td { padding: 9px 6px; }
+}

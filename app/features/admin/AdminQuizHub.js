@@ -27,6 +27,7 @@ import { formatDateTime, formatDuration, formatBytes } from "../../lib/triReadUi
 import styles from "../../page.module.css";
 import { AdminQuizManagementPanel, AdminSecurityPanel, AdminUsersPanel } from "./AdminManagementPanels";
 import { AdminPagination } from "./AdminShared";
+import { AdminContentInventory } from "./AdminContentInventory";
 
 export function blankAdminQuiz() {
   return {
@@ -293,6 +294,8 @@ export function AdminOperationsPanel({
           <article><Database size={18} /><div><span>DB 크기</span><strong>{formatBytes(summary.databaseSizeBytes)}</strong></div></article>
         </section>
 
+        <AdminContentInventory inventory={summary.contentInventory} />
+
         <section className={styles.opsSection}>
           <div className={styles.adminSectionHeading}><div><span>TODAY</span><h2>Gemini API</h2></div><b>평균 {Math.round(ai.averageLatencyMs || 0)}ms</b></div>
           <div className={styles.adminMetrics}>
@@ -307,13 +310,14 @@ export function AdminOperationsPanel({
         </section>
 
         <section className={styles.opsSection}>
-          <div className={styles.adminSectionHeading}><div><span>NEXT 7 DAYS</span><h2>퀴즈 재고</h2></div></div>
+          <div className={styles.adminSectionHeading}><div><span>NEXT 7 DAYS · PRODUCTION</span><h2>날짜별 발행 현황</h2></div></div>
+          <p>생산 날짜 기준 참고 현황입니다. 사용자별 실제 재고와는 다릅니다.</p>
           <div className={styles.opsInventory}>
             {summary.inventory?.map((item) => (
               <article key={item.challengeDate} className={item.shortage ? styles.opsInventoryShortage : ""}>
                 <time>{item.challengeDate}</time>
                 <strong>{item.publishedCount}/{item.requiredCount}</strong>
-                <span>{item.shortage ? "부족" : "준비 완료"}</span>
+                <span>{item.shortage ? "날짜별 목표 미달" : "날짜별 목표 달성"}</span>
               </article>
             ))}
           </div>
